@@ -52,7 +52,10 @@ COLOR_LABELS = {
     "non_diesels_off_planned": "Planned or proposed system without diesels-off capability",
 }
 
+
 _SYSTEM_ID_PATTERN = re.compile(r"\s*\(([A-Z0-9-]+)\)\s*$")
+
+
 
 
 def format_value(value: object) -> Optional[str]:
@@ -92,6 +95,7 @@ def infer_system_type(system_id: Optional[str]) -> str:
     return "Unknown"
 
 
+
 def clean_system_name(name: Optional[str]) -> Optional[str]:
     """Remove trailing system IDs from the provided system name."""
     if not name or not isinstance(name, str):
@@ -103,7 +107,6 @@ def clean_system_name(name: Optional[str]) -> Optional[str]:
         if any(char.isdigit() for char in token) and "-" in token:
             cleaned = _SYSTEM_ID_PATTERN.sub("", cleaned).rstrip()
     return cleaned or None
-
 
 def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
     items: List[str] = []
@@ -121,6 +124,7 @@ def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
 
 def build_system_section(row: pd.Series, show_divider: bool) -> str:
     system_type = row["System Type"]
+
     system_name = clean_system_name(row.get("System Name"))
     if system_name:
         heading = system_name
@@ -151,9 +155,13 @@ def build_system_section(row: pd.Series, show_divider: bool) -> str:
     return (
         "<div style=\"margin-bottom:6px;padding-bottom:6px;" + divider_style + "\">"
         + f"<div style='font-weight:600;font-size:13px;margin-bottom:4px;color:#0b3954;'>{html.escape(heading)}</div>"
+
         + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;'>{details_html}</ul>"
+
+
         + "</div>"
     )
+
 
 
 def build_project_section(project_df: pd.DataFrame, fallback_label: str) -> str:
@@ -193,7 +201,6 @@ def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
         + "</div></div>"
     )
 
-
 def determine_color_category(group: pd.DataFrame) -> str:
     enables = group["Enables Diesels-Off (yes/no)"].astype(str).str.strip().str.lower()
     statuses = group["System Status"].astype(str).str.strip().str.lower()
@@ -228,11 +235,13 @@ def create_community_records(df: pd.DataFrame) -> List[Dict[str, object]]:
             icon_list.append("☀️")
         if has_bess:
             icon_list.append("🔋")
+
         icon_line = " ".join(icon_list)
         label_parts = [community]
         if icon_line:
             label_parts.append(icon_line)
         label = "\n".join(label_parts)
+
 
         tooltip_html = build_tooltip_html(community, group)
         category = determine_color_category(group)
@@ -259,11 +268,37 @@ def load_data(path: str = DATA_PATH) -> pd.DataFrame:
     return df
 
 
+
 def build_deck(records: List[Dict[str, object]]) -> pdk.Deck:
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
         data=records,
         id="community-scatter",
+
+def main() -> None:
+    st.set_page_config(page_title="Alaska Clean Energy Projects", page_icon="☀️", layout="wide")
+
+    st.title("Alaska Community Clean Energy Installations")
+    st.markdown(
+        """
+        Explore solar photovoltaic (PV) and battery energy storage system (BESS) projects across Alaska's communities. Each
+        map pin represents a community and reveals its projects and systems when hovered. Pin colors reflect whether any
+        associated system supports diesels-off operations and its operational status. Labels show whether a community has
+        PV (☀️) and/or BESS (🔋) systems.
+        """
+    )
+
+    data = load_data()
+    community_records = create_community_records(data)
+
+    if not community_records:
+        st.warning("No community records with valid coordinates were found in the dataset.")
+        return
+
+    scatter_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=community_records,
+
         get_position="[longitude, latitude]",
         get_fill_color="color",
         get_line_color="[255, 255, 255, 255]",
@@ -276,6 +311,7 @@ def build_deck(records: List[Dict[str, object]]) -> pdk.Deck:
 
     text_layer = pdk.Layer(
         "TextLayer",
+
         data=records,
         id="community-labels",
         get_position="[longitude, latitude]",
@@ -318,6 +354,42 @@ def build_deck(records: List[Dict[str, object]]) -> pdk.Deck:
 
 
 def render_legend() -> None:
+
+        data=community_records,
+        get_position="[longitude, latitude]",
+        get_text="label",
+        get_color="[35, 35, 35, 255]",
+        get_size=16,
+        get_alignment_baseline="top",
+        get_text_anchor="middle",
+        get_pixel_offset=[0, 18],
+    )
+
+    view_state = pdk.ViewState(latitude=64.2008, longitude=-152.4044, zoom=3.6, min_zoom=2.5, max_zoom=10, pitch=30)
+
+    tooltip_style = {
+        "html": "{tooltip_html}",
+        "style": {
+            "backgroundColor": "rgba(245, 248, 252, 0.95)",
+            "color": "#1f2933",
+            "fontFamily": "Roboto, Arial, sans-serif",
+            "fontSize": "12px",
+            "border": "1px solid #d5d7dc",
+            "borderRadius": "8px",
+            "padding": "8px",
+        },
+    }
+
+    deck = pdk.Deck(
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        initial_view_state=view_state,
+        layers=[scatter_layer, text_layer],
+        tooltip=tooltip_style,
+    )
+
+    st.pydeck_chart(deck, use_container_width=True)
+
+
     st.subheader("Map Legend")
     legend_columns = st.columns(2)
     for (category, description), column in zip(COLOR_LABELS.items(), legend_columns * 2):
@@ -331,35 +403,6 @@ def render_legend() -> None:
             unsafe_allow_html=True,
         )
 
-
-def main() -> None:
-    st.set_page_config(page_title="Alaska Clean Energy Projects", page_icon="☀️", layout="wide")
-
-    st.title("Alaska Community Clean Energy Installations")
-    st.markdown(
-        """
-        Explore solar photovoltaic (PV) and battery energy storage system (BESS) projects across Alaska's communities.
-        Hover over a map pin to preview each community's projects. Pin colors reflect whether any associated system supports
-        diesels-off operations and its operational status. Labels below each pin display the community name and icons for PV (☀️)
-        and/or BESS (🔋) systems.
-        """
-    )
-
-    data = load_data()
-    community_records = create_community_records(data)
-
-    if not community_records:
-        st.warning("No community records with valid coordinates were found in the dataset.")
-        return
-
-    deck = build_deck(community_records)
-    st.pydeck_chart(deck, use_container_width=True, height=660)
-
-    render_legend()
-
-    st.caption(
-        "Data source: ACEP Grid Edge Solar Installation dataset. Hover over pins to compare project and system details."
-    )
 
 
 if __name__ == "__main__":
