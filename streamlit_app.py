@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import re
 from typing import Dict, Iterable, List, Optional
 
 import pandas as pd
@@ -52,6 +53,11 @@ COLOR_LABELS = {
 }
 
 
+_SYSTEM_ID_PATTERN = re.compile(r"\s*\(([A-Z0-9-]+)\)\s*$")
+
+
+
+
 def format_value(value: object) -> Optional[str]:
     """Return a formatted string for display in tooltips."""
     if value is None:
@@ -89,6 +95,19 @@ def infer_system_type(system_id: Optional[str]) -> str:
     return "Unknown"
 
 
+
+def clean_system_name(name: Optional[str]) -> Optional[str]:
+    """Remove trailing system IDs from the provided system name."""
+    if not name or not isinstance(name, str):
+        return None
+    cleaned = name.strip()
+    match = _SYSTEM_ID_PATTERN.search(cleaned)
+    if match:
+        token = match.group(1)
+        if any(char.isdigit() for char in token) and "-" in token:
+            cleaned = _SYSTEM_ID_PATTERN.sub("", cleaned).rstrip()
+    return cleaned or None
+
 def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
     items: List[str] = []
     for label, raw_value in pairs:
@@ -105,9 +124,14 @@ def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
 
 def build_system_section(row: pd.Series, show_divider: bool) -> str:
     system_type = row["System Type"]
-    system_id = format_value(row.get("System ID Number")) or "Unknown System ID"
-    system_name = format_value(row.get("System Name"))
-    heading = system_id if not system_name else f"{system_name} ({system_id})"
+
+    system_name = clean_system_name(row.get("System Name"))
+    if system_name:
+        heading = system_name
+    elif format_value(system_type):
+        heading = f"{system_type} System"
+    else:
+        heading = "System"
 
     base_fields = [
         ("System Type", system_type),
@@ -131,43 +155,51 @@ def build_system_section(row: pd.Series, show_divider: bool) -> str:
     return (
         "<div style=\"margin-bottom:6px;padding-bottom:6px;" + divider_style + "\">"
         + f"<div style='font-weight:600;font-size:13px;margin-bottom:4px;color:#0b3954;'>{html.escape(heading)}</div>"
-        + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.4;'>{details_html}</ul>"
+
+        + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;'>{details_html}</ul>"
+
+
         + "</div>"
     )
 
 
-def build_project_section(project_id: object, project_df: pd.DataFrame) -> str:
-    project_name = format_value(project_df["Project Name"].iloc[0])
-    project_id_text = format_value(project_id) or "Unknown Project ID"
-    header = f"Project {project_id_text}"
-    body_parts = [
-        "<div style=\"border:1px solid #d5d7dc;border-radius:8px;padding:8px;"
-        "margin-bottom:8px;background-color:rgba(255,255,255,0.92);\">",
-        f"<div style='font-size:14px;font-weight:600;color:#12355b;margin-bottom:4px;'>{html.escape(header)}</div>",
+
+def build_project_section(project_df: pd.DataFrame, fallback_label: str) -> str:
+    project_name = format_value(project_df["Project Name"].iloc[0]) or fallback_label
+    systems = project_df.sort_values("System Name", na_position="last")
+    card_parts = [
+        "<div style=\"flex:1 1 240px;min-width:220px;max-width:280px;",
+        "background-color:rgba(255,255,255,0.95);border:1px solid #d5d7dc;",
+        "border-radius:10px;padding:10px 12px;box-shadow:0 6px 18px rgba(15,23,42,0.14);\">",
+        f"<div style='font-size:15px;font-weight:650;color:#0b3954;margin-bottom:8px;'>{html.escape(project_name)}</div>",
     ]
-    if project_name:
-        body_parts.append(
-            f"<div style='font-size:12px;color:#2f5061;margin-bottom:6px;'>{html.escape(project_name)}</div>"
-        )
 
-    systems = project_df.sort_values("System ID Number")
     for idx, (_, row) in enumerate(systems.iterrows()):
-        body_parts.append(build_system_section(row, idx < len(systems) - 1))
+        card_parts.append(build_system_section(row, idx < len(systems) - 1))
 
-    body_parts.append("</div>")
-    return "".join(body_parts)
+    card_parts.append("</div>")
+    return "".join(card_parts)
 
 
 def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
-    parts = [
-        "<div style=\"min-width:280px;max-width:360px;font-family:Roboto,Arial,sans-serif;\">",
-        f"<div style='font-size:16px;font-weight:700;margin-bottom:8px;color:#0b3954;'>{html.escape(community)}</div>",
-    ]
-    for project_id, project_df in community_df.groupby("Project ID Number", dropna=False):
-        parts.append(build_project_section(project_id, project_df))
-    parts.append("</div>")
-    return "".join(parts)
+    project_sections: List[str] = []
+    for index, (_, project_df) in enumerate(
+        community_df.groupby("Project ID Number", dropna=False),
+        start=1,
+    ):
+        project_sections.append(
+            build_project_section(project_df, fallback_label=f"Project {index}")
+        )
 
+    projects_html = "".join(project_sections) or "<div>No project details available</div>"
+    community_heading = format_value(community) or "Community"
+    return (
+        "<div style=\"min-width:320px;max-width:640px;font-family:Roboto,Arial,sans-serif;\">"
+        + f"<div style='font-size:17px;font-weight:700;margin-bottom:10px;color:#05274d;'>{html.escape(community_heading)}</div>"
+        + "<div style='display:flex;flex-wrap:wrap;gap:10px;'>"
+        + projects_html
+        + "</div></div>"
+    )
 
 def determine_color_category(group: pd.DataFrame) -> str:
     enables = group["Enables Diesels-Off (yes/no)"].astype(str).str.strip().str.lower()
@@ -203,8 +235,14 @@ def create_community_records(df: pd.DataFrame) -> List[Dict[str, object]]:
             icon_list.append("☀️")
         if has_bess:
             icon_list.append("🔋")
-        icon_suffix = f" {' '.join(icon_list)}" if icon_list else ""
-        label = f"{community}{icon_suffix}"
+
+        icon_line = " ".join(icon_list)
+        label_parts = [community]
+        if icon_line:
+            label_parts.append(icon_line)
+        label = "\n".join(label_parts)
+
+
         tooltip_html = build_tooltip_html(community, group)
         category = determine_color_category(group)
         color = COLOR_SCALE.get(category, COLOR_SCALE["non_diesels_off_planned"])
@@ -230,6 +268,13 @@ def load_data(path: str = DATA_PATH) -> pd.DataFrame:
     return df
 
 
+
+def build_deck(records: List[Dict[str, object]]) -> pdk.Deck:
+    scatter_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=records,
+        id="community-scatter",
+
 def main() -> None:
     st.set_page_config(page_title="Alaska Clean Energy Projects", page_icon="☀️", layout="wide")
 
@@ -253,6 +298,7 @@ def main() -> None:
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
         data=community_records,
+
         get_position="[longitude, latitude]",
         get_fill_color="color",
         get_line_color="[255, 255, 255, 255]",
@@ -265,6 +311,50 @@ def main() -> None:
 
     text_layer = pdk.Layer(
         "TextLayer",
+
+        data=records,
+        id="community-labels",
+        get_position="[longitude, latitude]",
+        get_text="label",
+        get_color="[35, 35, 35, 255]",
+        get_size=15,
+        get_alignment_baseline="top",
+        get_text_anchor="middle",
+        get_pixel_offset=[0, 26],
+        line_height=1.2,
+    )
+
+    view_state = pdk.ViewState(
+        latitude=64.2008,
+        longitude=-152.4044,
+        zoom=3.6,
+        min_zoom=2.5,
+        max_zoom=10,
+        pitch=30,
+    )
+
+    tooltip_style = {
+        "backgroundColor": "rgba(245, 248, 252, 0.95)",
+        "color": "#1f2933",
+        "fontFamily": "Roboto, Arial, sans-serif",
+        "fontSize": "12px",
+        "border": "1px solid #d5d7dc",
+        "borderRadius": "10px",
+        "padding": "10px",
+        "boxShadow": "0 10px 26px rgba(15, 23, 42, 0.18)",
+        "maxWidth": "640px",
+    }
+
+    return pdk.Deck(
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        initial_view_state=view_state,
+        layers=[scatter_layer, text_layer],
+        tooltip={"html": "{tooltip_html}", "style": tooltip_style},
+    )
+
+
+def render_legend() -> None:
+
         data=community_records,
         get_position="[longitude, latitude]",
         get_text="label",
@@ -299,6 +389,7 @@ def main() -> None:
 
     st.pydeck_chart(deck, use_container_width=True)
 
+
     st.subheader("Map Legend")
     legend_columns = st.columns(2)
     for (category, description), column in zip(COLOR_LABELS.items(), legend_columns * 2):
@@ -312,10 +403,6 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-    st.caption(
-        "Data source: ACEP Grid Edge Solar Installation dataset. Hover over communities to see projects, "
-        "systems, and associated parameters."
-    )
 
 
 if __name__ == "__main__":
