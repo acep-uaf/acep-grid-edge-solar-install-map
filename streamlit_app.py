@@ -104,10 +104,10 @@ def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
 
 
 def build_system_section(row: pd.Series, show_divider: bool) -> str:
-    system_type = row["System Type"]
-    system_id = format_value(row.get("System ID Number")) or "Unknown System ID"
+    system_type = row.get("System Type")
     system_name = format_value(row.get("System Name"))
-    heading = system_id if not system_name else f"{system_name} ({system_id})"
+    system_type_label = format_value(system_type)
+    heading = system_name or system_type_label or "System Details"
 
     base_fields = [
         ("System Type", system_type),
@@ -136,35 +136,68 @@ def build_system_section(row: pd.Series, show_divider: bool) -> str:
     )
 
 
-def build_project_section(project_id: object, project_df: pd.DataFrame) -> str:
+def build_project_section(project_df: pd.DataFrame) -> str:
     project_name = format_value(project_df["Project Name"].iloc[0])
-    project_id_text = format_value(project_id) or "Unknown Project ID"
-    header = f"Project {project_id_text}"
-    body_parts = [
-        "<div style=\"border:1px solid #d5d7dc;border-radius:8px;padding:8px;"
-        "margin-bottom:8px;background-color:rgba(255,255,255,0.92);\">",
-        f"<div style='font-size:14px;font-weight:600;color:#12355b;margin-bottom:4px;'>{html.escape(header)}</div>",
-    ]
-    if project_name:
-        body_parts.append(
-            f"<div style='font-size:12px;color:#2f5061;margin-bottom:6px;'>{html.escape(project_name)}</div>"
-        )
+    header = project_name or "Project"
 
-    systems = project_df.sort_values("System ID Number")
+    body_parts = [
+        "<div style=\"flex:1 1 240px;min-width:220px;max-width:280px;border:1px solid #d5d7dc;\""
+        "border-radius:8px;padding:8px;background-color:rgba(255,255,255,0.92);box-sizing:border-box;\">",
+        f"<div style='font-size:14px;font-weight:600;color:#12355b;margin-bottom:6px;'>{html.escape(header)}</div>",
+    ]
+
+    sort_columns: List[str] = []
+    if "System Name" in project_df.columns:
+        sort_columns.append("System Name")
+    if "System ID Number" in project_df.columns:
+        sort_columns.append("System ID Number")
+
+    systems = project_df.sort_values(sort_columns) if sort_columns else project_df
+    total_systems = len(systems)
+    system_sections: List[str] = []
     for idx, (_, row) in enumerate(systems.iterrows()):
-        body_parts.append(build_system_section(row, idx < len(systems) - 1))
+        system_sections.append(build_system_section(row, idx < total_systems - 1))
+
+    if system_sections:
+        body_parts.extend(system_sections)
+    else:
+        body_parts.append(
+            "<div style='font-size:12px;color:#5f6c7b;'>No system details available for this project.</div>"
+        )
 
     body_parts.append("</div>")
     return "".join(body_parts)
 
 
 def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
+    project_groups = list(community_df.groupby("Project ID Number", dropna=False))
+
+    def sort_key(item) -> tuple[int, str]:
+        project_id, project_df = item
+        name = format_value(project_df["Project Name"].iloc[0])
+        if name:
+            return (0, name.casefold())
+        fallback = format_value(project_id) or ""
+        return (1, fallback.casefold())
+
+    project_groups.sort(key=sort_key)
+
+    project_sections = [build_project_section(project_df) for _, project_df in project_groups]
+
+    if project_sections:
+        projects_html = (
+            "<div style='display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;'>"
+            + "".join(project_sections)
+            + "</div>"
+        )
+    else:
+        projects_html = "<div style='font-size:12px;color:#5f6c7b;'>No project details available.</div>"
+
     parts = [
-        "<div style=\"min-width:280px;max-width:360px;font-family:Roboto,Arial,sans-serif;\">",
+        "<div style=\"min-width:300px;max-width:680px;font-family:Roboto,Arial,sans-serif;\">",
         f"<div style='font-size:16px;font-weight:700;margin-bottom:8px;color:#0b3954;'>{html.escape(community)}</div>",
+        projects_html,
     ]
-    for project_id, project_df in community_df.groupby("Project ID Number", dropna=False):
-        parts.append(build_project_section(project_id, project_df))
     parts.append("</div>")
     return "".join(parts)
 
