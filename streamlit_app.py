@@ -306,7 +306,7 @@ def build_system_section(row: pd.Series, status_class: str, install_year: Option
         + f"<div style='font-weight:600;font-size:13px;color:#0b3954;'>{html.escape(heading)}</div>"
         + badge_html
         + "</div>"
-        + f"<div style='font-size:11px;color:#43536d;margin-bottom:6px;'>Install year: {html.escape(install_year_text)}</div>"
+        + f"<div style='font-size:11px;color:#43536d;margin-bottom:6px;margin-top:-10px'>{html.escape(install_year_text)}</div>"
         + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;'>{details_html}</ul>"
         + "</div>"
     )
@@ -365,7 +365,7 @@ def build_project_section(project_df: pd.DataFrame) -> str:
         + f"<div style='font-size:15px;font-weight:700;color:#0b3954;'>{html.escape(header)}</div>"
         + build_status_badge(project_status)
         + "</div>"
-        + f"<div style='font-size:12px;color:#3f4a5a;margin-bottom:10px;'>First install year: {html.escape(project_year_text)}</div>"
+        + f"<div style='font-size:14px;color:#3f4a5a;margin-bottom:10px;margin-top:-10px';font-weight:500>{html.escape(project_year_text)}</div>"
         + systems_html
         + "</div>"
     )
