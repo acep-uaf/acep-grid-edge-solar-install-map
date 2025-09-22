@@ -1,22 +1,22 @@
-Project ID Number,Project Name,System ID Number,Funding Anncouncement Number,System Name,Award Number,Enables Diesels-Off (yes/no),Supports Diesels-Off (yes/no),System Status,Community Name,Location,Latitude,Longitude,BESS Capacity (kWh),BESS Throughput (kW),BESS Manufacturer,BESS Model,BESS Inverter Manufacturer,BESS Inverter Model,BESS Installation Manager,BESS Install Date,BESS Owner,BESS Ownership Structure,PV DC Capacity (kWdc),PV AC Capacity (kWac),Number of PV Modules,PV Module Manufacturer,PV Module Model,PV Inverter Manufacturer,PV Inverter Model,PV Installation Manager,PV Install Date,PV Owner,PV Ownership Structure
+﻿Project ID Number,Project Name,System ID Number,Funding Anncouncement Number,System Name,Award Number,Enables Diesels-Off (yes/no),Supports Diesels-Off (yes/no),System Status,Community Name,Location,Latitude,Longitude,BESS Capacity (kWh),BESS Throughput (kW),BESS Manufacturer,BESS Model,BESS Inverter Manufacturer,BESS Inverter Model,BESS Installation Manager,BESS Install Date,BESS Owner,BESS Ownership Structure,PV DC Capacity (kWdc),PV AC Capacity (kWac),Number of PV Modules,PV Module Manufacturer,PV Module Model,PV Inverter Manufacturer,PV Inverter Model,PV Installation Manager,PV Install Date,PV Owner,PV Ownership Structure
 WTK-2024-00-BP,Noatak Solar-Battery IPP Phase 1,WTK-2024-00-P,DE-FOA-0002317,IPP Phase 1 Solar,DE-IE0000146,yes,yes,operating,Noatak,Community,67.569086,-162.968551,NA,NA,NA,,,,Alaska Northwest Arctic Borough,NA,NA,NA,280.6,250,432,Canadian Solar,650W Bifacial,EPC Power Corp.,PD 500,,2023-08,,
 WTK-2024-00-BP,Noatak Solar-Battery IPP Phase 1,WTK-2024-00-B,DE-FOA-0002317,IPP Phase 1 Battery,DE-IE0000146,yes,yes,operating,Noatak,Community,67.569086,-162.968551,442,495,Pylontech,,,,Alaska Northwest Arctic Borough,2024,City of Noatak,IPP,280.6,250,NA,NA,NA,NA,NA,,NA,NA,NA
 WTK-2013-00-P,Noatak Water Plant Solar,WTK-2013-00-P,,Noatak Water Plant Solar,,no,no,operating,Noatak,Water Plant,67.569086,-162.968551,NA,NA,NA,,,,Alaska Northwest Arctic Borough,NA,NA,NA,,,,,,,,,,,
-WTK-2024-01-BP,Noatak Solar-Battery IPP Phase 2,WTK-2024-01-P,,Solar Array,,no,yes,planned,Noatak,Community,67.569086,-162.968551,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,,,,,,,,,,,
-WTK-2024-01-BP,Noatak Solar-Battery IPP Phase 2,WTK-2024-01-B,,Battery,,no,yes,planned,Noatak,Community,67.569086,-162.968551,,,,,,,,,,,,,,,,,,,,,
-SHG-2021-00-BP,Shungnak Solar-Battery IPP,SHG-2021-00-P,,Solar Array,,yes,yes,operating,Shungnak,Community,66.889366,-157.139068,NA,NA,NA,,NA,,NA,NA,NA,NA,223,,,,,,,,,,
-SHG-2021-00-BP,Shungnak Solar-Battery IPP,SHG-2021-00-B,,Battery,,yes,yes,operating,Shungnak,Community,66.888481,-157.13979,384,,,,,,,,,,,,,,,,,,,,
-OTZ-2020-00-BP,Kotzebue Solar-Battery Phase 1,OTZ-2020-00-P,,Kotzebue Solar Phase 1,,no,no,operating,Kotzebue,Community,66.839207,-162.554548,NA,NA,NA,,NA,,NA,NA,NA,NA,576,532.8,1440,LG,LG400N2T-JV,SolarEdge,6.6-SE 100,,2020,Kotzebue Electric Association,Owned by Utility
-OTZ-2020-00-BP,Kotzebue Solar-Battery Phase 1,OTZ-2020-00-B,,Kotzebue Battery,,no,no,under repair,Kotzebue,Community,66.893947,-162.597889,950,1130,Saft,IM-20,ABB,PCS100,Kotzebue Electric Association,2020,Kotzebue Electric Association,Owned by Utility,NA,NA,NA,NA,NA,NA,NA,,NA,NA,NA
-OTZ-2020-01-BP,Kotzebue Solar Phase 2,OTZ-2020-01-P,,Kotzebue Solar Phase 2,,no,no,operating,Kotzebue,Community,66.83722,-162.56006,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,630,540,972,Canadian Solar,,Selectra,PV-60-480,,2023,Kotzebue Electric Association,Owned by Utility
-WLK-2014-00-P,Selawik Water Plant,WLK-2014-00-P,,Water Plant Solar,,no,no,operating,Selawik,Community,66.603879,-160.009876,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,9.7,,,,,,,,2014,,
-WLK-2025-00-BP,Selawik Solar-Battery,WLK-2025-00-P,,Solar Array,,yes,yes,planned,Selawik,Community,66.603879,-160.009876,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,710,,1340,Silfab,530XM,,,,,,
-WLK-2025-00-BP,Selawik Solar-Battery,WLK-2025-00-B,,Battery,,yes,yes,planned,Selawik,Community,66.603879,-160.009876,,,,,,,,,,,,,,,,,,,,,
-AFM-2025-00-BP,Ambler Solar-Battery,AFM-2025-00-B,,Battery,,yes,yes,planned,Ambler,Community,67.086106,-157.858163,284,,,,,,,,,,,,,,,,,,,,
-AFM-2025-00-BP,Ambler Solar-Battery,AFM-2025-00-P,,Solar Array,,yes,yes,planned,Ambler,Community,67.086106,-157.858163,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,234,,,,,,,,,,
+WTK-2024-01-BP,Noatak Solar-Battery IPP Phase 2,WTK-2024-01-P,,,,no,yes,planned,Noatak,Community,67.569086,-162.968551,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,,,,,,,,,,,
+WTK-2024-01-BP,Noatak Solar-Battery IPP Phase 2,WTK-2024-01-B,,,,no,yes,planned,Noatak,Community,67.569086,-162.968551,,,,,,,,,,,,,,,,,,,,,
+SHG-2021-00-BP,Shungnak Solar-Battery IPP,SHG-2021-00-P,,,,yes,yes,operating,Shungnak,Community,66.889366,-157.139068,NA,NA,NA,,NA,,NA,NA,NA,NA,223,,,,,,,,,,
+SHG-2021-00-BP,Shungnak Solar-Battery IPP,SHG-2021-00-B,,,,yes,yes,operating,Shungnak,Community,66.888481,-157.13979,384,,,,,,,,,,,,,,,,,,,,
+OTZ-2020-00-BP,Kotzebue Solar-Battery Phase 1,OTZ-2020-00-P,,,,no,no,operating,Kotzebue,Community,66.839207,-162.554548,NA,NA,NA,,NA,,NA,NA,NA,NA,576,532.8,1440,LG,LG400N2T-JV,SolarEdge,6.6-SE 100,,2020,Kotzebue Electric Association,Owned by Utility
+OTZ-2020-00-BP,Kotzebue Solar-Battery Phase 1,OTZ-2020-00-B,,,,no,no,under repair,Kotzebue,Community,66.893947,-162.597889,950,1130,Saft,IM-20,ABB,PCS100,Kotzebue Electric Association,2020,Kotzebue Electric Association,Owned by Utility,NA,NA,NA,NA,NA,NA,NA,,NA,NA,NA
+OTZ-2020-01-BP,Kotzebue Solar Phase 2,OTZ-2020-01-P,,,,no,no,operating,Kotzebue,Community,66.83722,-162.56006,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,630,540,972,Canadian Solar,,Selectra,PV-60-480,,2023,Kotzebue Electric Association,Owned by Utility
+WLK-2014-00-P,Selawik Water Plant,WLK-2014-00-P,,,,no,no,operating,Selawik,Community,66.603879,-160.009876,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,9.7,,,,,,,,2014,,
+WLK-2025-00-BP,Selawik Solar-Battery,WLK-2025-00-P,,,,yes,yes,planned,Selawik,Community,66.603879,-160.009876,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,710,,1340,Silfab,530XM,,,,,,
+WLK-2025-00-BP,Selawik Solar-Battery,WLK-2025-00-B,,,,yes,yes,planned,Selawik,Community,66.603879,-160.009876,,,,,,,,,,,,,,,,,,,,,
+AFM-2025-00-BP,Ambler Solar-Battery,AFM-2025-00-B,,,,yes,yes,planned,Ambler,Community,67.086106,-157.858163,284,,,,,,,,,,,,,,,,,,,,
+AFM-2025-00-BP,Ambler Solar-Battery,AFM-2025-00-P,,,,yes,yes,planned,Ambler,Community,67.086106,-157.858163,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,234,,,,,,,,,,
 AFM-2013-00-P,Ambler Water Plant,AFM-2013-00-P,,Water Plant Solar,,no,no,operating,Ambler,Community,67.086106,-157.858163,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,8.4,,,,,,,Alaska Northwest Arctic Borough,2013,,
 AFM-2013-01-P,Ambler IRA Building Solar,AFM-2013-01-P,,IRA Building Solar,,no,no,operating,Ambler,Community,67.086106,-157.858163,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,2.2,,,,,,,Alaska Northwest Arctic Borough,2013,,
-DEE-2019-00-BP,Deering Solar-Battery,DEE-2019-00-B,,Battery,,yes,yes,operating,Deering,Community,66.080489,-162.739786,109,277,Saft,Intensium Mini,,,Alaska Northwest Arctic Borough,2019,,,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+DEE-2019-00-BP,Deering Solar-Battery,DEE-2019-00-B,,Battery,,yes,yes,operating,Deering,Community,67.086106,-157.858163,109,277,Saft,Intensium Mini,,,Alaska Northwest Arctic Borough,2019,,,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 DEE-2019-00-BP,Deering Solar-Battery,DEE-2019-00-P,,BoxPower Solar,,yes,yes,operating,Deering,Community,66.080489,-162.739786,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,48.5,50,126,Q Cells,385w,SMA,Tripower 50kW,Alaska Northwest Arctic Borough,2019,,
 DEE-2013-00-P,Deering Water Tank Solar,DEE-2013-00-P,,Water Tank Solar,,no,yes,operating,Deering,Community,66.074974,-162.721498,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,11.1,,,,,,,,,,
 BVK-2019-00-BP,Buckland Solar-Battery,BVK-2019-00-P,,BoxPower Solar,,yes,yes,operating,Buckland,Community,65.976402,-161.125196,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,45.4,45,126,Talesun,TP672M-360,SMA,Tripower 15kW,Alaska Northwest Arctic Borough,2019,,
@@ -26,23 +26,22 @@ WBB-2023-00-BW,Stebbins-St Michaels Battery-Wind,WBB-2023-00-B,,Battery,,yes,yes
 KSM-2024-00-BW,St. Mary's Battery-Wind,KSM-2024-00-B,,Battery,,yes,yes,unknown,St. Mary's,Community,62.053717,-163.172529,1000,1000,FREQCON,Lithium Iron Phosphate,FREQCON,FREQCON 4-wire,Alaska Village Electric Cooperative,2024,Alaska Village Electric Cooperative,,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 AQH-2025-00-B,Quinhagak Battery Energy Storage System ,AQH-2025-00-B,,Battery,,,,planned,Quinhagak,Community,59.748592,-161.906934,,,,,,,,,,,,,,,,,,,,,
 DUY-2018-00-B,Kongiganak Battery System,DUY-2018-00-B,,Battery Energy Storage,,no,no,operating,Kongiganak,Community,59.959074,-162.88785,300,250,,,,,,,Puvurnaq Power Company,Owned by Utility,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+ANV-2030-00-P,Solar Array,ANV-2030-00-P,,Solar Array,,,,planned,Anvik,Community,62.643517,-160.190784,,,,,,,,,,,,,,,,,,,,,
+KGX-2030-00-P,Solar Array,KGX-2030-00-P,,Solar Array,,,,planned,Grayling,Community,62.903621,-160.066194,,,,,,,,,,,,,,,,,,,,,
+HLA-2030-00-P,Solar Array,HLA-2030-00-P,,Solar Array,,,,planned,Huslia,Community,65.699465,-156.372678,,,,,,,,,,,,,,,,,,,,,
+HCA-2030-00-P,Solar Array,HCA-2030-00-P,,Solar Array,,,,planned,Holy Cross,Community,62.193327,-159.76332,,,,,,,,,,,,,,,,,,,,,
+KAL-2030-00-P,Solar Array,KAL-2030-00-P,,Solar Array,,,,planned,Kaltag,Community,64.322963,-158.730972,,,,,,,,,,,,,,,,,,,,,
+51Z-2030-00-P,Solar Array,51Z-2030-00-P,,Solar Array,,,,planned,Minto,Community,65.153758,-149.353436,,,,,,,,,,,,,,,,,,,,,
+SHX-2030-00-P,Solar Array,SHX-2030-00-P,,Solar Array,,,,planned,Shageluk,Community,62.65168,-159.531156,,,,,,,,,,,,,,,,,,,,,
+NUL-2030-00-P,Solar Array,NUL-2030-00-P,,Solar Array,,,,planned,Nulato,Community,64.718863,-158.110252,,,,,,,,,,,,,,,,,,,,,
+VEE-2030-00-BP,Solar-Battery,VEE-2030-00-B,,BESS,,,,planned,Venetie,Community,67.013452,-146.409531,520,,,,,,,,,,,,,,,,,,,,
+FYU-2030-00-BP,Solar-Battery,FYU-2030-00-B,,BESS,,,,planned,Fort Yukon,Community,66.567579,-145.250098,1260,,,,,,,,,,,,,,,,,,,,
+TAL-2030-00-BP,Solar-Battery,TAL-2030-00-B,,BESS,,,,planned,Tanana,Community,65.174291,-152.102162,650,,,,,,,,,,,,,,,,,,,,
+CRC-2030-00-BP,Solar-Battery,CRC-2030-00-B,,BESS,,,,planned,Circle,Community,65.827737,-144.069797,350,,,,,,,,,,,,,,,,,,,,
+VEE-2030-00-BP,Solar-Battery,VEE-2030-00-P,,Solar Array,,,,planned,Venetie,Community,67.013452,-146.409531,,,,,,,,,,,210,,,,,,,TCC,,,
+FYU-2030-00-BP,Solar-Battery,FYU-2030-00-P,,Solar Array,,,,planned,Fort Yukon,Community,66.567579,-145.250098,,,,,,,,,,,750,,,,,,,TCC,,,
+TAL-2030-00-BP,Solar-Battery,TAL-2030-00-P,,Solar Array,,,,planned,Tanana,Community,65.174291,-152.102162,,,,,,,,,,,500,,,,,,,TCC,,,
+CRC-2030-00-BP,Solar-Battery,CRC-2030-00-P,,Solar Array,,,,planned,Circle,Community,65.827737,-144.069797,,,,,,,,,,,225,,,,,,,TCC,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

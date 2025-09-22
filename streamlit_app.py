@@ -573,15 +573,9 @@ def load_data(path: str = DATA_PATH) -> pd.DataFrame:
 def main() -> None:
     st.set_page_config(page_title="Alaska Clean Energy Projects", page_icon="☀️", layout="wide")
 
-    st.title("Alaska Community Clean Energy Installations")
-    st.markdown(
-        """
-        Explore solar photovoltaic (PV) and battery energy storage system (BESS) projects across Alaska's communities. Each
-        map pin represents a community and reveals its projects and systems when hovered. Pin colors reflect whether any
-        associated system supports diesels-off operations and its operational status. Labels show whether a community has
-        PV (☀️) and/or BESS (🔋) systems.
-        """
-    )
+    st.title("Alaska Battery and Solar PV Installation Map")
+
+      
 
     data = load_data()
     community_records = create_community_records(data)
