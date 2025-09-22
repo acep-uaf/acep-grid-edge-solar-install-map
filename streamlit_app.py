@@ -18,9 +18,12 @@ BASE_FIELDS = [
     ("Award Number", "Award Number"),
 ]
 
-PV_FIELDS = [
+PV_CAPACITY_FIELDS = [
     ("PV DC Capacity (kWdc)", "PV DC Capacity (kWdc)"),
     ("PV AC Capacity (kWac)", "PV AC Capacity (kWac)"),
+]
+
+PV_ADDITIONAL_FIELDS = [
     ("Number of PV Modules", "Number of PV Modules"),
     ("PV Module Manufacturer", "PV Module Manufacturer"),
     ("PV Module Model", "PV Module Model"),
@@ -292,29 +295,28 @@ def format_install_year_text(year: Optional[object], status_class: str) -> str:
     return "Unknown"
 
 
-def build_bess_stat_card(label: str, value: str) -> str:
+def build_year_badge(text: str) -> str:
     return (
-        "<div style='flex:1 1 150px;min-width:140px;padding:12px;border-radius:12px;"
-        "background:linear-gradient(135deg,#0b3954,#1477a1);color:#f8fafc;box-shadow:0 4px 12px rgba(15,23,42,0.15);'>"
-        f"<div style='font-size:11px;text-transform:uppercase;letter-spacing:0.05em;opacity:0.85;'>{html.escape(label)}</div>"
-        f"<div style='font-size:20px;font-weight:700;margin-top:6px;line-height:1.2;'>{html.escape(value)}</div>"
-        "</div>"
+        "<div style='display:inline-block;padding:2px 6px;border-radius:6px;background:#eef1f6;"
+        "color:#2f3b52;font-size:11px;font-weight:600;letter-spacing:0.02em;'>"
+        f"{html.escape(text)}</div>"
     )
 
 
-def build_bess_info_group(title: str, items: List[tuple[str, str]]) -> str:
+def build_info_group(title: str, items: List[tuple[str, str]]) -> str:
     cells = []
     for label, value in items:
         cells.append(
-            "<div style='padding:6px 8px;border-radius:8px;background:#ffffff;border:1px solid rgba(15,23,42,0.08);'>"
+            "<div style='padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.75);"
+            "border:1px solid rgba(15,23,42,0.08);'>"
             f"<div style='font-size:10px;font-weight:600;text-transform:uppercase;color:#4a5b75;letter-spacing:0.04em;'>{html.escape(label)}</div>"
             f"<div style='font-size:12px;color:#102a43;margin-top:4px;'>{html.escape(value)}</div>"
             "</div>"
         )
     return (
-        "<div style='margin-bottom:12px;padding:10px;border-radius:12px;background:rgba(11,57,84,0.05);'>"
-        f"<div style='font-size:11px;font-weight:600;color:#0b3954;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;'>{html.escape(title)}</div>"
-        "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;'>"
+        "<div style='margin-bottom:8px;padding:8px;border-radius:10px;background:rgba(15,23,42,0.04);'>"
+        f"<div style='font-size:11px;font-weight:600;color:#0b3954;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;'>{html.escape(title)}</div>"
+        "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;'>"
         + "".join(cells)
         + "</div>"
         + "</div>"
@@ -322,29 +324,23 @@ def build_bess_info_group(title: str, items: List[tuple[str, str]]) -> str:
 
 
 def build_bess_detail_html(row: pd.Series, base_pairs: List[tuple[str, object]]) -> str:
-    highlight_cards = [
-        build_bess_stat_card(label, format_value_or_unknown(row.get(column)))
+    capacity_items = [
+        (label, format_value_or_unknown(row.get(column)))
         for label, column in BESS_CAPACITY_FIELDS
     ]
-    highlight_html = "".join(highlight_cards)
-    if highlight_html:
-        highlight_html = (
-            "<div style='display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;'>"
-            + highlight_html
-            + "</div>"
-        )
+    capacity_html = build_info_group("Capacity & Throughput", capacity_items)
 
     equipment_items = [
         (label, format_value_or_unknown(row.get(column)))
         for label, column in BESS_EQUIPMENT_FIELDS
     ]
-    equipment_html = build_bess_info_group("Equipment", equipment_items)
+    equipment_html = build_info_group("Equipment", equipment_items)
 
     ownership_items = [
         (label, format_value_or_unknown(row.get(column)))
         for label, column in BESS_OWNERSHIP_FIELDS
     ]
-    ownership_html = build_bess_info_group("Ownership", ownership_items)
+    ownership_html = build_info_group("Ownership", ownership_items)
 
     other_pairs = base_pairs + [
         (label, row.get(column)) for label, column in BESS_OTHER_FIELDS
@@ -353,11 +349,27 @@ def build_bess_detail_html(row: pd.Series, base_pairs: List[tuple[str, object]])
     other_html = ""
     if other_list_items:
         other_html = (
-            "<ul style='margin:12px 0 0;padding-left:18px;font-size:12px;line-height:1.45;'>"
+            "<ul style='margin:8px 0 0;padding-left:16px;font-size:12px;line-height:1.45;'>"
             f"{other_list_items}</ul>"
         )
 
-    return highlight_html + equipment_html + ownership_html + other_html
+    return capacity_html + equipment_html + ownership_html + other_html
+
+
+def build_pv_detail_html(row: pd.Series, base_pairs: List[tuple[str, object]]) -> str:
+    capacity_items = [
+        (label, format_value_or_unknown(row.get(column)))
+        for label, column in PV_CAPACITY_FIELDS
+    ]
+    capacity_html = build_info_group("Capacity (DC & AC)", capacity_items)
+
+    parameter_pairs = [(label, row.get(column)) for label, column in PV_ADDITIONAL_FIELDS]
+    list_items = build_list_items(base_pairs + parameter_pairs)
+    details_html = (
+        f"<ul style='margin:8px 0 0;padding-left:16px;font-size:12px;line-height:1.45;'>{list_items}</ul>"
+    )
+
+    return capacity_html + details_html
 
 
 def build_system_section(row: pd.Series, status_class: str, install_year: Optional[int]) -> str:
@@ -377,29 +389,28 @@ def build_system_section(row: pd.Series, status_class: str, install_year: Option
     meta = get_status_meta(status_class)
     badge_html = build_status_badge(status_class)
     install_year_text = format_install_year_text(install_year, status_class)
+    install_year_badge = build_year_badge(install_year_text)
 
     base_pairs = [(label, row.get(column)) for label, column in BASE_FIELDS]
 
     if system_type == "Battery Energy Storage":
         detail_content = build_bess_detail_html(row, base_pairs)
+    elif system_type == "Solar PV":
+        detail_content = build_pv_detail_html(row, base_pairs)
     else:
-        if system_type == "Solar PV":
-            parameter_pairs = [(label, row.get(column)) for label, column in PV_FIELDS]
-        else:
-            parameter_pairs = []
-        list_items = build_list_items(base_pairs + parameter_pairs)
+        list_items = build_list_items(base_pairs)
         detail_content = (
-            f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;'>{list_items}</ul>"
+            f"<ul style='margin:4px 0 0;padding-left:16px;font-size:12px;line-height:1.45;'>{list_items}</ul>"
         )
 
     return (
-        "<div style='padding:10px;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,0.08);'"
+        "<div style='padding:8px;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,0.08);'"
         f"border:1px solid {meta['border']};background:{meta['system_background']};'>"
-        + "<div style='display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;'>"
+        + "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:6px;'>"
         + f"<div style='font-weight:600;font-size:13px;color:#0b3954;'>{html.escape(heading)}</div>"
         + badge_html
         + "</div>"
-        + f"<div style='font-size:11px;color:#43536d;margin-bottom:6px;margin-top:-10px'>{html.escape(install_year_text)}</div>"
+        + f"<div style='margin-bottom:6px;'>{install_year_badge}</div>"
         + detail_content
         + "</div>"
     )
@@ -427,6 +438,7 @@ def build_project_section(project_df: pd.DataFrame) -> str:
     year_series = systems_df["_install_year"].dropna()
     project_year = int(year_series.min()) if not year_series.empty else None
     project_year_text = format_install_year_text(project_year, project_status)
+    project_year_badge = build_year_badge(project_year_text)
 
     system_sections: List[str] = []
     for _, row in systems_df.iterrows():
@@ -440,25 +452,25 @@ def build_project_section(project_df: pd.DataFrame) -> str:
         )
 
     systems_html = (
-        "<div style='display:flex;flex-direction:column;gap:8px;'>" + "".join(system_sections) + "</div>"
+        "<div style='display:flex;flex-direction:column;gap:6px;'>" + "".join(system_sections) + "</div>"
         if system_sections
         else "<div style='font-size:12px;color:#5f6c7b;'>No system details available for this project.</div>"
     )
 
     container_style = (
-        f"flex:1 1 260px;min-width:240px;max-width:320px;border-radius:12px;"
+        f"flex:1 1 250px;min-width:230px;max-width:300px;border-radius:10px;"
         f"border:1px solid {project_meta['project_border']};"
         f"background:{project_meta['project_background']};"
-        "box-shadow:0 2px 6px rgba(15,23,42,0.08);padding:12px;box-sizing:border-box;"
+        "box-shadow:0 1px 3px rgba(15,23,42,0.08);padding:10px;box-sizing:border-box;"
     )
 
     return (
         f"<div style=\"{container_style}\">"
-        + "<div style='display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;'>"
+        + "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:6px;'>"
         + f"<div style='font-size:15px;font-weight:700;color:#0b3954;'>{html.escape(header)}</div>"
         + build_status_badge(project_status)
         + "</div>"
-        + f"<div style='font-size:14px;color:#3f4a5a;margin-bottom:10px;margin-top:-10px';font-weight:500>{html.escape(project_year_text)}</div>"
+        + f"<div style='margin-bottom:6px;'>{project_year_badge}</div>"
         + systems_html
         + "</div>"
     )
@@ -481,7 +493,7 @@ def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
 
     if project_sections:
         projects_html = (
-            "<div style='display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;'>"
+            "<div style='display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;'>"
             + "".join(project_sections)
             + "</div>"
         )
@@ -490,7 +502,7 @@ def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
 
     parts = [
         "<div style=\"min-width:300px;max-width:680px;font-family:Roboto,Arial,sans-serif;\">",
-        f"<div style='font-size:16px;font-weight:700;margin-bottom:8px;color:#0b3954;'>{html.escape(community)}</div>",
+        f"<div style='font-size:16px;font-weight:700;margin-bottom:6px;color:#0b3954;'>{html.escape(community)}</div>",
         projects_html,
     ]
     parts.append("</div>")
