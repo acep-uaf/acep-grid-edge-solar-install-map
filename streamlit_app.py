@@ -11,6 +11,13 @@ import streamlit as st
 
 DATA_PATH = "data/installation_data_csv.csv"
 
+BASE_FIELDS = [
+    ("Enables Diesels-Off", "Enables Diesels-Off (yes/no)"),
+    ("Supports Diesels-Off", "Supports Diesels-Off (yes/no)"),
+    ("Funding Announcement", "Funding Anncouncement Number"),
+    ("Award Number", "Award Number"),
+]
+
 PV_FIELDS = [
     ("PV DC Capacity (kWdc)", "PV DC Capacity (kWdc)"),
     ("PV AC Capacity (kWac)", "PV AC Capacity (kWac)"),
@@ -20,22 +27,29 @@ PV_FIELDS = [
     ("PV Inverter Manufacturer", "PV Inverter Manufacturer"),
     ("PV Inverter Model", "PV Inverter Model"),
     ("PV Installation Manager", "PV Installation Manager"),
-    ("PV Install Date", "PV Install Date"),
     ("PV Owner", "PV Owner"),
     ("PV Ownership Structure", "PV Ownership Structure"),
 ]
 
-BESS_FIELDS = [
-    ("BESS Capacity (kWh)", "BESS Capacity (kWh)"),
-    ("BESS Throughput (kW)", "BESS Throughput (kW)"),
-    ("BESS Manufacturer", "BESS Manufacturer"),
-    ("BESS Model", "BESS Model"),
-    ("BESS Inverter Manufacturer", "BESS Inverter Manufacturer"),
-    ("BESS Inverter Model", "BESS Inverter Model"),
-    ("BESS Installation Manager", "BESS Installation Manager"),
-    ("BESS Install Date", "BESS Install Date"),
-    ("BESS Owner", "BESS Owner"),
-    ("BESS Ownership Structure", "BESS Ownership Structure"),
+BESS_CAPACITY_FIELDS = [
+    ("Capacity (kWh)", "BESS Capacity (kWh)"),
+    ("Throughput (kW)", "BESS Throughput (kW)"),
+]
+
+BESS_EQUIPMENT_FIELDS = [
+    ("Manufacturer", "BESS Manufacturer"),
+    ("Model", "BESS Model"),
+    ("Inverter Manufacturer", "BESS Inverter Manufacturer"),
+    ("Inverter Model", "BESS Inverter Model"),
+]
+
+BESS_OWNERSHIP_FIELDS = [
+    ("Owner", "BESS Owner"),
+    ("Installation Manager", "BESS Installation Manager"),
+]
+
+BESS_OTHER_FIELDS = [
+    ("Ownership Structure", "BESS Ownership Structure"),
 ]
 
 COLOR_SCALE = {
@@ -156,6 +170,11 @@ def format_value(value: object) -> Optional[str]:
     return str(value)
 
 
+def format_value_or_unknown(value: object) -> str:
+    formatted = format_value(value)
+    return formatted if formatted is not None else "Unknown"
+
+
 def infer_system_type(system_id: Optional[str]) -> str:
     if not system_id or not isinstance(system_id, str):
         return "Unknown"
@@ -167,7 +186,9 @@ def infer_system_type(system_id: Optional[str]) -> str:
     return "Unknown"
 
 
-def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
+def build_list_items(
+    pairs: Iterable[tuple[str, object]], *, empty_message: str = "<li>No additional parameters available</li>"
+) -> str:
     items: List[str] = []
     for label, raw_value in pairs:
         value = format_value(raw_value)
@@ -177,7 +198,7 @@ def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
                 f"{html.escape(value)}</li>"
             )
     if not items:
-        return "<li>No additional parameters available</li>"
+        return empty_message
     return "".join(items)
 
 
@@ -271,43 +292,115 @@ def format_install_year_text(year: Optional[object], status_class: str) -> str:
     return "Unknown"
 
 
+def build_bess_stat_card(label: str, value: str) -> str:
+    return (
+        "<div style='flex:1 1 150px;min-width:140px;padding:12px;border-radius:12px;"
+        "background:linear-gradient(135deg,#0b3954,#1477a1);color:#f8fafc;box-shadow:0 4px 12px rgba(15,23,42,0.15);'>"
+        f"<div style='font-size:11px;text-transform:uppercase;letter-spacing:0.05em;opacity:0.85;'>{html.escape(label)}</div>"
+        f"<div style='font-size:20px;font-weight:700;margin-top:6px;line-height:1.2;'>{html.escape(value)}</div>"
+        "</div>"
+    )
+
+
+def build_bess_info_group(title: str, items: List[tuple[str, str]]) -> str:
+    cells = []
+    for label, value in items:
+        cells.append(
+            "<div style='padding:6px 8px;border-radius:8px;background:#ffffff;border:1px solid rgba(15,23,42,0.08);'>"
+            f"<div style='font-size:10px;font-weight:600;text-transform:uppercase;color:#4a5b75;letter-spacing:0.04em;'>{html.escape(label)}</div>"
+            f"<div style='font-size:12px;color:#102a43;margin-top:4px;'>{html.escape(value)}</div>"
+            "</div>"
+        )
+    return (
+        "<div style='margin-bottom:12px;padding:10px;border-radius:12px;background:rgba(11,57,84,0.05);'>"
+        f"<div style='font-size:11px;font-weight:600;color:#0b3954;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;'>{html.escape(title)}</div>"
+        "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;'>"
+        + "".join(cells)
+        + "</div>"
+        + "</div>"
+    )
+
+
+def build_bess_detail_html(row: pd.Series, base_pairs: List[tuple[str, object]]) -> str:
+    highlight_cards = [
+        build_bess_stat_card(label, format_value_or_unknown(row.get(column)))
+        for label, column in BESS_CAPACITY_FIELDS
+    ]
+    highlight_html = "".join(highlight_cards)
+    if highlight_html:
+        highlight_html = (
+            "<div style='display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;'>"
+            + highlight_html
+            + "</div>"
+        )
+
+    equipment_items = [
+        (label, format_value_or_unknown(row.get(column)))
+        for label, column in BESS_EQUIPMENT_FIELDS
+    ]
+    equipment_html = build_bess_info_group("Equipment", equipment_items)
+
+    ownership_items = [
+        (label, format_value_or_unknown(row.get(column)))
+        for label, column in BESS_OWNERSHIP_FIELDS
+    ]
+    ownership_html = build_bess_info_group("Ownership", ownership_items)
+
+    other_pairs = base_pairs + [
+        (label, row.get(column)) for label, column in BESS_OTHER_FIELDS
+    ]
+    other_list_items = build_list_items(other_pairs, empty_message="")
+    other_html = ""
+    if other_list_items:
+        other_html = (
+            "<ul style='margin:12px 0 0;padding-left:18px;font-size:12px;line-height:1.45;'>"
+            f"{other_list_items}</ul>"
+        )
+
+    return highlight_html + equipment_html + ownership_html + other_html
+
+
 def build_system_section(row: pd.Series, status_class: str, install_year: Optional[int]) -> str:
     system_type = row.get("System Type")
     system_name = format_value(row.get("System Name"))
     system_type_label = format_value(system_type)
     heading = system_name or system_type_label or "System Details"
 
+    emoji_prefix = ""
+    if system_type == "Battery Energy Storage":
+        emoji_prefix = "🔋 "
+    elif system_type == "Solar PV":
+        emoji_prefix = "☀️ "
+    if emoji_prefix:
+        heading = f"{emoji_prefix}{heading}"
+
     meta = get_status_meta(status_class)
     badge_html = build_status_badge(status_class)
     install_year_text = format_install_year_text(install_year, status_class)
 
-    base_fields = [
-        ("System Type", system_type),
-        ("Status", row.get("System Status")),
-        ("Enables Diesels-Off", row.get("Enables Diesels-Off (yes/no)")),
-        ("Supports Diesels-Off", row.get("Supports Diesels-Off (yes/no)")),
-        ("Location", row.get("Location")),
-        ("Funding Announcement", row.get("Funding Anncouncement Number")),
-        ("Award Number", row.get("Award Number")),
-    ]
+    base_pairs = [(label, row.get(column)) for label, column in BASE_FIELDS]
 
     if system_type == "Battery Energy Storage":
-        parameter_pairs = [(label, row.get(column)) for label, column in BESS_FIELDS]
-    elif system_type == "Solar PV":
-        parameter_pairs = [(label, row.get(column)) for label, column in PV_FIELDS]
+        detail_content = build_bess_detail_html(row, base_pairs)
     else:
-        parameter_pairs = []
+        if system_type == "Solar PV":
+            parameter_pairs = [(label, row.get(column)) for label, column in PV_FIELDS]
+        else:
+            parameter_pairs = []
+        list_items = build_list_items(base_pairs + parameter_pairs)
+        detail_content = (
+            f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;'>{list_items}</ul>"
+        )
 
-    details_html = build_list_items(base_fields + parameter_pairs)
     return (
-        "<div style='padding:10px;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,0.08);"
+        "<div style='padding:10px;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,0.08);'"
         f"border:1px solid {meta['border']};background:{meta['system_background']};'>"
         + "<div style='display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;'>"
         + f"<div style='font-weight:600;font-size:13px;color:#0b3954;'>{html.escape(heading)}</div>"
         + badge_html
         + "</div>"
         + f"<div style='font-size:11px;color:#43536d;margin-bottom:6px;margin-top:-10px'>{html.escape(install_year_text)}</div>"
-        + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;'>{details_html}</ul>"
+        + detail_content
         + "</div>"
     )
 
