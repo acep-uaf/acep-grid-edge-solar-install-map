@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import re
 from typing import Dict, Iterable, List, Optional
 
 import pandas as pd
@@ -49,6 +50,83 @@ COLOR_LABELS = {
     "diesels_off_planned": "Planned system with diesels-off capability",
     "non_diesels_off_operating": "Operating system without diesels-off capability",
     "non_diesels_off_planned": "Planned or proposed system without diesels-off capability",
+}
+
+PLANNED_KEYWORDS = {
+    "planned",
+    "proposed",
+    "pending",
+    "construction",
+    "development",
+    "future",
+}
+
+OPERATING_KEYWORDS = {
+    "operating",
+    "operational",
+    "active",
+    "online",
+    "in operation",
+}
+
+INOPERATIVE_KEYWORDS = {
+    "inoperative",
+    "inoperable",
+    "out of order",
+    "out-of-order",
+    "out of service",
+    "out-of-service",
+    "offline",
+    "retired",
+    "decommissioned",
+    "not operating",
+    "not-operating",
+    "inactive",
+    "under repair",
+    "down",
+}
+
+STATUS_META = {
+    "operating": {
+        "icon": "✅",
+        "label_text": "Operating",
+        "system_background": "#eef8f0",
+        "project_background": "#e6f3e9",
+        "border": "#9acb9a",
+        "project_border": "#82b77a",
+        "label_background": "#dff1e0",
+        "label_color": "#2f6d34",
+    },
+    "planned": {
+        "icon": "⚠️",
+        "label_text": "Planned",
+        "system_background": "#fff8e1",
+        "project_background": "#fff3cd",
+        "border": "#e7c66a",
+        "project_border": "#d5b34c",
+        "label_background": "#fef3c7",
+        "label_color": "#8a6d1a",
+    },
+    "inoperative": {
+        "icon": "🚫",
+        "label_text": "Inoperative",
+        "system_background": "#fdecea",
+        "project_background": "#f9e0dc",
+        "border": "#f1998d",
+        "project_border": "#dd8275",
+        "label_background": "#f8d7da",
+        "label_color": "#a13232",
+    },
+    "unknown": {
+        "icon": "ℹ️",
+        "label_text": "Status Unknown",
+        "system_background": "#f5f6f8",
+        "project_background": "#f0f2f5",
+        "border": "#cfd6e0",
+        "project_border": "#b9c2d0",
+        "label_background": "#e6e9f0",
+        "label_color": "#4a5568",
+    },
 }
 
 
@@ -103,11 +181,105 @@ def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
     return "".join(items)
 
 
-def build_system_section(row: pd.Series, show_divider: bool) -> str:
+def normalize_status(value: object) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip().lower()
+    return text
+
+
+def classify_status(value: object) -> str:
+    text = normalize_status(value)
+    if not text or text in {"na", "n/a", "none", "unknown"}:
+        return "unknown"
+    if any(keyword in text for keyword in OPERATING_KEYWORDS):
+        return "operating"
+    if any(keyword in text for keyword in INOPERATIVE_KEYWORDS):
+        return "inoperative"
+    if any(keyword in text for keyword in PLANNED_KEYWORDS):
+        return "planned"
+    return "unknown"
+
+
+def aggregate_status(statuses: Iterable[str]) -> str:
+    status_list = list(statuses)
+    if not status_list:
+        return "unknown"
+    if any(status == "operating" for status in status_list):
+        return "operating"
+    if any(status == "inoperative" for status in status_list):
+        return "inoperative"
+    if any(status == "planned" for status in status_list):
+        return "planned"
+    return "unknown"
+
+
+def get_status_meta(status_class: str) -> Dict[str, str]:
+    return STATUS_META.get(status_class, STATUS_META["unknown"])
+
+
+def build_status_badge(status_class: str) -> str:
+    meta = get_status_meta(status_class)
+    return (
+        "<span style='display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;"
+        f"background:{meta['label_background']};color:{meta['label_color']};font-size:11px;font-weight:600;'>"
+        f"{meta['icon']} {meta['label_text']}</span>"
+    )
+
+
+def parse_install_year(value: object) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except TypeError:
+        pass
+    if isinstance(value, pd.Timestamp):
+        return int(value.year)
+    if isinstance(value, (int, float)):
+        if float(value).is_integer() and 1000 <= int(value) <= 3000:
+            return int(value)
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        match = re.search(r"(19|20)\d{2}", text)
+        if match:
+            return int(match.group(0))
+    return None
+
+
+def get_system_install_year(row: pd.Series) -> Optional[int]:
+    for column in ("BESS Install Date", "PV Install Date"):
+        if column in row:
+            year = parse_install_year(row.get(column))
+            if year is not None:
+                return year
+    return None
+
+
+def format_install_year_text(year: Optional[object], status_class: str) -> str:
+    try:
+        if year is not None and not pd.isna(year):
+            return str(int(float(year)))
+    except (TypeError, ValueError):
+        pass
+    if status_class == "planned":
+        return "TBD"
+    return "Unknown"
+
+
+def build_system_section(row: pd.Series, status_class: str, install_year: Optional[int]) -> str:
     system_type = row.get("System Type")
     system_name = format_value(row.get("System Name"))
     system_type_label = format_value(system_type)
     heading = system_name or system_type_label or "System Details"
+
+    meta = get_status_meta(status_class)
+    badge_html = build_status_badge(status_class)
+    install_year_text = format_install_year_text(install_year, status_class)
 
     base_fields = [
         ("System Type", system_type),
@@ -127,11 +299,15 @@ def build_system_section(row: pd.Series, show_divider: bool) -> str:
         parameter_pairs = []
 
     details_html = build_list_items(base_fields + parameter_pairs)
-    divider_style = "border-bottom:1px dashed #b5b5b5;" if show_divider else ""
     return (
-        "<div style=\"margin-bottom:6px;padding-bottom:6px;" + divider_style + "\">"
-        + f"<div style='font-weight:600;font-size:13px;margin-bottom:4px;color:#0b3954;'>{html.escape(heading)}</div>"
-        + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.4;'>{details_html}</ul>"
+        "<div style='padding:10px;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,0.08);"
+        f"border:1px solid {meta['border']};background:{meta['system_background']};'>"
+        + "<div style='display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;'>"
+        + f"<div style='font-weight:600;font-size:13px;color:#0b3954;'>{html.escape(heading)}</div>"
+        + badge_html
+        + "</div>"
+        + f"<div style='font-size:11px;color:#43536d;margin-bottom:6px;'>Install year: {html.escape(install_year_text)}</div>"
+        + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;'>{details_html}</ul>"
         + "</div>"
     )
 
@@ -140,33 +316,59 @@ def build_project_section(project_df: pd.DataFrame) -> str:
     project_name = format_value(project_df["Project Name"].iloc[0])
     header = project_name or "Project"
 
-    body_parts = [
-        "<div style=\"flex:1 1 240px;min-width:220px;max-width:280px;border:1px solid #d5d7dc;\""
-        "border-radius:8px;padding:8px;background-color:rgba(255,255,255,0.92);box-sizing:border-box;\">",
-        f"<div style='font-size:14px;font-weight:600;color:#12355b;margin-bottom:6px;'>{html.escape(header)}</div>",
-    ]
+    systems_df = project_df.copy()
+    systems_df["_status_class"] = systems_df["System Status"].apply(classify_status)
+    systems_df["_install_year"] = systems_df.apply(get_system_install_year, axis=1)
 
-    sort_columns: List[str] = []
-    if "System Name" in project_df.columns:
+    sort_columns: List[str] = ["_install_year"]
+    if "System Name" in systems_df.columns:
         sort_columns.append("System Name")
-    if "System ID Number" in project_df.columns:
+    if "System ID Number" in systems_df.columns:
         sort_columns.append("System ID Number")
 
-    systems = project_df.sort_values(sort_columns) if sort_columns else project_df
-    total_systems = len(systems)
-    system_sections: List[str] = []
-    for idx, (_, row) in enumerate(systems.iterrows()):
-        system_sections.append(build_system_section(row, idx < total_systems - 1))
+    systems_df = systems_df.sort_values(sort_columns, na_position="last")
 
-    if system_sections:
-        body_parts.extend(system_sections)
-    else:
-        body_parts.append(
-            "<div style='font-size:12px;color:#5f6c7b;'>No system details available for this project.</div>"
+    project_status = aggregate_status(systems_df["_status_class"].tolist())
+    project_meta = get_status_meta(project_status)
+
+    year_series = systems_df["_install_year"].dropna()
+    project_year = int(year_series.min()) if not year_series.empty else None
+    project_year_text = format_install_year_text(project_year, project_status)
+
+    system_sections: List[str] = []
+    for _, row in systems_df.iterrows():
+        install_year_value = row["_install_year"]
+        if pd.isna(install_year_value):
+            normalized_year: Optional[int] = None
+        else:
+            normalized_year = int(float(install_year_value))
+        system_sections.append(
+            build_system_section(row, row["_status_class"], normalized_year)
         )
 
-    body_parts.append("</div>")
-    return "".join(body_parts)
+    systems_html = (
+        "<div style='display:flex;flex-direction:column;gap:8px;'>" + "".join(system_sections) + "</div>"
+        if system_sections
+        else "<div style='font-size:12px;color:#5f6c7b;'>No system details available for this project.</div>"
+    )
+
+    container_style = (
+        f"flex:1 1 260px;min-width:240px;max-width:320px;border-radius:12px;"
+        f"border:1px solid {project_meta['project_border']};"
+        f"background:{project_meta['project_background']};"
+        "box-shadow:0 2px 6px rgba(15,23,42,0.08);padding:12px;box-sizing:border-box;"
+    )
+
+    return (
+        f"<div style=\"{container_style}\">"
+        + "<div style='display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;'>"
+        + f"<div style='font-size:15px;font-weight:700;color:#0b3954;'>{html.escape(header)}</div>"
+        + build_status_badge(project_status)
+        + "</div>"
+        + f"<div style='font-size:12px;color:#3f4a5a;margin-bottom:10px;'>First install year: {html.escape(project_year_text)}</div>"
+        + systems_html
+        + "</div>"
+    )
 
 
 def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
@@ -186,7 +388,7 @@ def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
 
     if project_sections:
         projects_html = (
-            "<div style='display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;'>"
+            "<div style='display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;'>"
             + "".join(project_sections)
             + "</div>"
         )
