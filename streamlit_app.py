@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import re
 from typing import Dict, Iterable, List, Optional
 
 import pandas as pd
@@ -51,6 +52,39 @@ COLOR_LABELS = {
     "non_diesels_off_planned": "Planned or proposed system without diesels-off capability",
 }
 
+STATUS_STYLES: Dict[str, Dict[str, str]] = {
+    "operating": {
+        "icon": "✅",
+        "label": "Operating",
+        "background": "rgba(209, 247, 223, 0.92)",
+        "border": "#8ecf97",
+        "text": "#1f5130",
+    },
+    "planned": {
+        "icon": "⚠️",
+        "label": "Planned",
+        "background": "rgba(255, 249, 219, 0.92)",
+        "border": "#f6d365",
+        "text": "#7a5c12",
+    },
+    "inoperative": {
+        "icon": "🚫",
+        "label": "Under Repair",
+        "background": "rgba(255, 228, 230, 0.92)",
+        "border": "#f3a3ae",
+        "text": "#7c1f2a",
+    },
+    "unknown": {
+        "icon": "ℹ️",
+        "label": "Status Unknown",
+        "background": "rgba(242, 244, 247, 0.92)",
+        "border": "#cbd2d9",
+        "text": "#334e68",
+    },
+}
+
+STATUS_PRIORITY = ("inoperative", "planned", "operating", "unknown")
+
 
 def format_value(value: object) -> Optional[str]:
     """Return a formatted string for display in tooltips."""
@@ -78,6 +112,109 @@ def format_value(value: object) -> Optional[str]:
     return str(value)
 
 
+def normalize_status(value: object) -> str:
+    if value is None:
+        return "unknown"
+    text = str(value).strip().lower()
+    if not text or text in {"nan", "none"}:
+        return "unknown"
+    if "operat" in text:
+        return "operating"
+    if "plan" in text:
+        return "planned"
+    if any(keyword in text for keyword in ("repair", "inoper", "out", "offline")):
+        return "inoperative"
+    return "unknown"
+
+
+def get_status_style(
+    value: object,
+    *,
+    normalized_override: Optional[str] = None,
+    label_override: Optional[str] = None,
+) -> Dict[str, str]:
+    normalized = normalized_override or normalize_status(value)
+    style = STATUS_STYLES.get(normalized, STATUS_STYLES["unknown"]).copy()
+    label = label_override or style["label"]
+    style.update({"label": label, "normalized": normalized})
+    return style
+
+
+def combine_status_labels(statuses: List[str]) -> str:
+    labels = [STATUS_STYLES[state]["label"] for state in statuses if state in STATUS_STYLES]
+    if not labels:
+        return STATUS_STYLES["unknown"]["label"]
+    if len(labels) == 1:
+        return labels[0]
+    if len(labels) == 2:
+        return " & ".join(labels)
+    return ", ".join(labels[:-1]) + " & " + labels[-1]
+
+
+def parse_install_year(value: object) -> Optional[int]:
+    formatted = format_value(value)
+    if not formatted:
+        return None
+    timestamp = pd.to_datetime(formatted, errors="coerce")
+    if pd.notna(timestamp):
+        return int(timestamp.year)
+    match = re.search(r"(19|20)\d{2}", formatted)
+    if match:
+        return int(match.group(0))
+    return None
+
+
+def determine_system_install_year(row: pd.Series) -> Optional[int]:
+    system_type = row.get("System Type")
+    install_fields: List[str]
+    if system_type == "Solar PV":
+        install_fields = ["PV Install Date"]
+    elif system_type == "Battery Energy Storage":
+        install_fields = ["BESS Install Date"]
+    else:
+        install_fields = ["PV Install Date", "BESS Install Date"]
+    for field in install_fields:
+        year = parse_install_year(row.get(field))
+        if year is not None:
+            return year
+    return None
+
+
+def determine_project_install_year(project_df: pd.DataFrame) -> Optional[int]:
+    years = [
+        year
+        for _, row in project_df.iterrows()
+        for year in [determine_system_install_year(row)]
+        if year is not None
+    ]
+    if years:
+        return min(years)
+    return None
+
+
+def summarize_project_status(project_df: pd.DataFrame) -> Dict[str, str]:
+    normalized_statuses: List[str] = []
+    for status in project_df.get("System Status", pd.Series(dtype=str)):
+        normalized = normalize_status(status)
+        if normalized != "unknown":
+            normalized_statuses.append(normalized)
+    if not normalized_statuses:
+        primary = "unknown"
+        label = STATUS_STYLES[primary]["label"]
+    else:
+        unique_statuses = []
+        seen = set()
+        for state in STATUS_PRIORITY:
+            if state in normalized_statuses and state not in seen:
+                unique_statuses.append(state)
+                seen.add(state)
+        if not unique_statuses:
+            unique_statuses = [normalize_status(normalized_statuses[0])]
+        primary = unique_statuses[0]
+        label = combine_status_labels(unique_statuses)
+    return get_status_style(None, normalized_override=primary, label_override=label)
+
+
 def infer_system_type(system_id: Optional[str]) -> str:
     if not system_id or not isinstance(system_id, str):
         return "Unknown"
@@ -103,11 +240,20 @@ def build_list_items(pairs: Iterable[tuple[str, object]]) -> str:
     return "".join(items)
 
 
-def build_system_section(row: pd.Series, show_divider: bool) -> str:
-    system_type = row["System Type"]
-    system_id = format_value(row.get("System ID Number")) or "Unknown System ID"
+def build_system_section(row: pd.Series) -> str:
+    system_type = row.get("System Type")
     system_name = format_value(row.get("System Name"))
-    heading = system_id if not system_name else f"{system_name} ({system_id})"
+    system_type_label = format_value(system_type)
+    heading = system_name or system_type_label or "System Details"
+
+    status_style = get_status_style(row.get("System Status"))
+    install_year = determine_system_install_year(row)
+    if install_year is not None:
+        install_text = f"Install year: {install_year}"
+    elif status_style["normalized"] == "planned":
+        install_text = "Install year: TBD"
+    else:
+        install_text = "Install year: Not available"
 
     base_fields = [
         ("System Type", system_type),
@@ -127,44 +273,109 @@ def build_system_section(row: pd.Series, show_divider: bool) -> str:
         parameter_pairs = []
 
     details_html = build_list_items(base_fields + parameter_pairs)
-    divider_style = "border-bottom:1px dashed #b5b5b5;" if show_divider else ""
+
+    status_badge = (
+        f"<div style='font-size:11px;font-weight:600;color:{status_style['text']};"
+        "display:flex;align-items:center;gap:4px;white-space:nowrap;'>"
+        f"{status_style['icon']}<span>{html.escape(status_style['label'])}</span></div>"
+    )
+
     return (
-        "<div style=\"margin-bottom:6px;padding-bottom:6px;" + divider_style + "\">"
-        + f"<div style='font-weight:600;font-size:13px;margin-bottom:4px;color:#0b3954;'>{html.escape(heading)}</div>"
-        + f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.4;'>{details_html}</ul>"
-        + "</div>"
+        f"<div style=\"padding:10px;border-radius:10px;border:1px solid {status_style['border']};"
+        f"background-color:{status_style['background']};box-shadow:0 1px 2px rgba(15, 23, 42, 0.08);\">"
+        f"<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;'>"
+        f"<div style='font-weight:600;font-size:13px;color:#0b3954;'>{html.escape(heading)}</div>"
+        f"{status_badge}</div>"
+        f"<div style='font-size:12px;color:#3a506b;margin-bottom:6px;'>{html.escape(install_text)}</div>"
+        f"<ul style='margin:0;padding-left:18px;font-size:12px;line-height:1.45;color:#1f2a44;'>{details_html}</ul>"
+        "</div>"
     )
 
 
-def build_project_section(project_id: object, project_df: pd.DataFrame) -> str:
+def build_project_section(project_df: pd.DataFrame) -> str:
     project_name = format_value(project_df["Project Name"].iloc[0])
-    project_id_text = format_value(project_id) or "Unknown Project ID"
-    header = f"Project {project_id_text}"
+    header = project_name or "Project"
+
+    project_status_style = summarize_project_status(project_df)
+    install_year = determine_project_install_year(project_df)
+    if install_year is not None:
+        start_text = f"First install year: {install_year}"
+    elif project_status_style["normalized"] == "planned":
+        start_text = "First install year: TBD"
+    else:
+        start_text = "First install year: Not available"
+
+    card_open = (
+        f"<div style=\"flex:1 1 280px;min-width:260px;max-width:320px;border:1px solid {project_status_style['border']};"
+        f"border-radius:12px;padding:12px;background-color:{project_status_style['background']};"
+        "box-sizing:border-box;box-shadow:0 1px 3px rgba(15, 23, 42, 0.12);display:flex;flex-direction:column;gap:10px;\">"
+    )
+    header_section = (
+        "<div style='display:flex;justify-content:space-between;align-items:flex-start;gap:8px;'>"
+        f"<div style='font-size:15px;font-weight:700;color:#0a2a43;'>{html.escape(header)}</div>"
+        f"<div style='font-size:12px;font-weight:600;color:{project_status_style['text']};display:flex;align-items:center;gap:4px;white-space:nowrap;'>"
+        f"{project_status_style['icon']}<span>{html.escape(project_status_style['label'])}</span>"
+        "</div></div>"
+    )
+
     body_parts = [
-        "<div style=\"border:1px solid #d5d7dc;border-radius:8px;padding:8px;"
-        "margin-bottom:8px;background-color:rgba(255,255,255,0.92);\">",
-        f"<div style='font-size:14px;font-weight:600;color:#12355b;margin-bottom:4px;'>{html.escape(header)}</div>",
+        card_open,
+        header_section,
+        f"<div style='font-size:12px;color:#3a506b;margin-top:-4px;'>{html.escape(start_text)}</div>",
+        "<div style='display:flex;flex-direction:column;gap:8px;'>",
     ]
-    if project_name:
+
+    sort_columns: List[str] = []
+    if "System Name" in project_df.columns:
+        sort_columns.append("System Name")
+    if "System ID Number" in project_df.columns:
+        sort_columns.append("System ID Number")
+
+    systems = project_df.sort_values(sort_columns) if sort_columns else project_df
+    system_sections: List[str] = []
+    for _, row in systems.iterrows():
+        system_sections.append(build_system_section(row))
+
+    if system_sections:
+        body_parts.extend(system_sections)
+    else:
         body_parts.append(
-            f"<div style='font-size:12px;color:#2f5061;margin-bottom:6px;'>{html.escape(project_name)}</div>"
+            "<div style='font-size:12px;color:#5f6c7b;'>No system details available for this project.</div>"
         )
 
-    systems = project_df.sort_values("System ID Number")
-    for idx, (_, row) in enumerate(systems.iterrows()):
-        body_parts.append(build_system_section(row, idx < len(systems) - 1))
-
-    body_parts.append("</div>")
+    body_parts.append("</div></div>")
     return "".join(body_parts)
 
 
 def build_tooltip_html(community: str, community_df: pd.DataFrame) -> str:
+    project_groups = list(community_df.groupby("Project ID Number", dropna=False))
+
+    def sort_key(item) -> tuple[int, str]:
+        project_id, project_df = item
+        name = format_value(project_df["Project Name"].iloc[0])
+        if name:
+            return (0, name.casefold())
+        fallback = format_value(project_id) or ""
+        return (1, fallback.casefold())
+
+    project_groups.sort(key=sort_key)
+
+    project_sections = [build_project_section(project_df) for _, project_df in project_groups]
+
+    if project_sections:
+        projects_html = (
+            "<div style='display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;justify-content:flex-start;'>"
+            + "".join(project_sections)
+            + "</div>"
+        )
+    else:
+        projects_html = "<div style='font-size:12px;color:#5f6c7b;'>No project details available.</div>"
+
     parts = [
-        "<div style=\"min-width:280px;max-width:360px;font-family:Roboto,Arial,sans-serif;\">",
+        "<div style=\"min-width:320px;max-width:760px;font-family:Roboto,Arial,sans-serif;\">",
         f"<div style='font-size:16px;font-weight:700;margin-bottom:8px;color:#0b3954;'>{html.escape(community)}</div>",
+        projects_html,
     ]
-    for project_id, project_df in community_df.groupby("Project ID Number", dropna=False):
-        parts.append(build_project_section(project_id, project_df))
     parts.append("</div>")
     return "".join(parts)
 
