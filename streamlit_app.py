@@ -4,10 +4,12 @@ from __future__ import annotations
 import html
 import re
 from typing import Dict, Iterable, List, Optional
+from urllib.parse import quote_plus
 
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
+import streamlit.components.v1 as components
 
 DATA_PATH = "data/installation_data_csv.csv"
 
@@ -558,9 +560,122 @@ def create_community_records(df: pd.DataFrame) -> List[Dict[str, object]]:
                 "tooltip_html": tooltip_html,
                 "label": label,
                 "category": category,
+                "detail_url": f"?community={quote_plus(community)}",
             }
         )
     return records
+
+
+def clear_selected_community() -> None:
+    st.experimental_set_query_params()
+    st.experimental_rerun()
+
+
+def render_community_detail(community: str, data: pd.DataFrame) -> bool:
+    community_df = data[data["Community Name"] == community]
+    if community_df.empty:
+        st.warning(f"No project details were found for {community}.")
+        return False
+
+    heading_html = (
+        "<div style='font-size:20px;font-weight:700;color:#0b3954;margin:16px 0 8px;'>"
+        f"{html.escape(community)} – Community project details"
+        "</div>"
+    )
+    st.markdown(heading_html, unsafe_allow_html=True)
+
+    detail_html = build_tooltip_html(community, community_df)
+    st.markdown(detail_html, unsafe_allow_html=True)
+    st.caption("This view mirrors the on-map tooltip for easier reading and sharing.")
+
+    st.button("Back to map", on_click=clear_selected_community, key="back-to-map")
+    return True
+
+
+def inject_click_handler(html_string: str) -> str:
+    injection = """
+    (function attachCommunityClickHandler(deckInstance) {
+      if (!deckInstance) {
+        return;
+      }
+
+      const deckObject = deckInstance.deck || deckInstance.__deck || deckInstance;
+      if (!deckObject || typeof deckObject.setProps !== 'function') {
+        return;
+      }
+
+      const existingOnClick =
+        deckObject.props && typeof deckObject.props.onClick === 'function'
+          ? deckObject.props.onClick
+          : null;
+      const existingGetCursor =
+        deckObject.props && typeof deckObject.props.getCursor === 'function'
+          ? deckObject.props.getCursor
+          : null;
+
+      const openCommunityPage = info => {
+        if (!info || !info.object || !info.object.detail_url) {
+          return;
+        }
+
+        try {
+          const targetUrl = new URL(info.object.detail_url, window.location.href).toString();
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        } catch (error) {
+          console.error('Unable to open community detail page', error);
+        }
+      };
+
+      deckObject.setProps({
+        onClick: info => {
+          openCommunityPage(info);
+          if (existingOnClick) {
+            try {
+              existingOnClick(info);
+            } catch (error) {
+              console.error('Error in existing onClick handler', error);
+            }
+          }
+        },
+        getCursor: state => {
+          if (existingGetCursor) {
+            try {
+              const result = existingGetCursor(state);
+              if (result) {
+                return result;
+              }
+            } catch (error) {
+              console.error('Error in existing getCursor handler', error);
+            }
+          }
+
+          if (state && state.isDragging) {
+            return 'grabbing';
+          }
+          if (state && state.isHovering) {
+            return 'pointer';
+          }
+          return 'grab';
+        },
+      });
+    })(deckInstance);
+    """
+
+    closing_tag = "</script>"
+    index = html_string.rfind(closing_tag)
+    if index == -1:
+        return html_string
+    return html_string[:index] + injection + html_string[index:]
+
+
+def render_map(deck: pdk.Deck, *, height: int = 620) -> None:
+    html_string = deck.to_html(
+        as_string=True,
+        notebook_display=False,
+        iframe_height=height,
+    )
+    html_with_click = inject_click_handler(html_string)
+    components.html(html_with_click, height=height, scrolling=False)
 
 
 @st.cache_data(show_spinner=False)
@@ -575,10 +690,24 @@ def main() -> None:
 
     st.title("Alaska Battery and Solar PV Installation Map")
 
-      
-
     data = load_data()
     community_records = create_community_records(data)
+
+    query_params = st.experimental_get_query_params()
+    selected_values = query_params.get("community", [])
+    selected_community = ""
+    if selected_values:
+        raw_value = selected_values[0]
+        if isinstance(raw_value, str):
+            selected_community = raw_value.strip()
+        elif raw_value is not None:
+            selected_community = str(raw_value).strip()
+
+    detail_rendered = False
+    if selected_community:
+        detail_rendered = render_community_detail(selected_community, data)
+        if detail_rendered:
+            st.divider()
 
     if not community_records:
         st.warning("No community records with valid coordinates were found in the dataset.")
@@ -631,7 +760,7 @@ def main() -> None:
         tooltip=tooltip_style,
     )
 
-    st.pydeck_chart(deck, use_container_width=True)
+    render_map(deck, height=640)
 
     st.subheader("Map Legend")
     legend_columns = st.columns(2)
