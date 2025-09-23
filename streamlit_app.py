@@ -604,6 +604,11 @@ def inject_click_handler(html_string: str) -> str:
         return;
       }
 
+      const container = document.getElementById('deck-container');
+      if (!container) {
+        return;
+      }
+
       const existingOnClick =
         deckObject.props && typeof deckObject.props.onClick === 'function'
           ? deckObject.props.onClick
@@ -613,25 +618,281 @@ def inject_click_handler(html_string: str) -> str:
           ? deckObject.props.getCursor
           : null;
 
-      const openCommunityPage = info => {
-        if (!info || !info.object || !info.object.detail_url) {
-          return;
+      const state = {
+        panelElements: null,
+        copyTimeout: null,
+      };
+
+      const ensurePanel = () => {
+        if (state.panelElements) {
+          return state.panelElements;
         }
 
-        try {
-          const targetUrl = new URL(info.object.detail_url, window.location.href).toString();
-          window.open(targetUrl, '_blank', 'noopener,noreferrer');
-        } catch (error) {
-          console.error('Unable to open community detail page', error);
+        if (getComputedStyle(container).position === 'static') {
+          container.style.position = 'relative';
         }
+
+        const panel = document.createElement('div');
+        panel.className = 'pinned-community-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-live', 'polite');
+        panel.style.position = 'absolute';
+        panel.style.top = '16px';
+        panel.style.right = '16px';
+        panel.style.maxWidth = '360px';
+        panel.style.width = 'min(360px, calc(100% - 32px))';
+        panel.style.maxHeight = 'calc(100% - 32px)';
+        panel.style.display = 'none';
+        panel.style.flexDirection = 'column';
+        panel.style.background = 'rgba(255, 255, 255, 0.98)';
+        panel.style.borderRadius = '12px';
+        panel.style.boxShadow = '0 18px 32px rgba(15, 23, 42, 0.28)';
+        panel.style.border = '1px solid rgba(15, 23, 42, 0.08)';
+        panel.style.backdropFilter = 'blur(4px)';
+        panel.style.padding = '16px';
+        panel.style.boxSizing = 'border-box';
+        panel.style.zIndex = '10';
+
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.justifyContent = 'space-between';
+        header.style.gap = '8px';
+        header.style.marginBottom = '12px';
+
+        const title = document.createElement('div');
+        title.style.fontSize = '16px';
+        title.style.fontWeight = '700';
+        title.style.color = '#0b3954';
+        title.textContent = 'Community details';
+        header.appendChild(title);
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.setAttribute('aria-label', 'Close pinned community details');
+        closeButton.textContent = '\u00d7';
+        closeButton.style.border = 'none';
+        closeButton.style.background = 'transparent';
+        closeButton.style.fontSize = '20px';
+        closeButton.style.lineHeight = '20px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.style.color = '#1f2a44';
+        closeButton.addEventListener('click', () => {
+          panel.style.display = 'none';
+        });
+        header.appendChild(closeButton);
+
+        panel.appendChild(header);
+
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.flexWrap = 'wrap';
+        actions.style.gap = '8px';
+        actions.style.marginBottom = '8px';
+
+        const openLink = document.createElement('a');
+        openLink.textContent = 'Open full community view \u2197';
+        openLink.href = '#';
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.style.display = 'none';
+        openLink.style.fontSize = '13px';
+        openLink.style.fontWeight = '600';
+        openLink.style.color = '#0b7285';
+        openLink.style.textDecoration = 'none';
+        openLink.style.padding = '6px 10px';
+        openLink.style.borderRadius = '999px';
+        openLink.style.background = 'rgba(11, 114, 133, 0.12)';
+        openLink.addEventListener('mouseenter', () => {
+          openLink.style.background = 'rgba(11, 114, 133, 0.18)';
+        });
+        openLink.addEventListener('mouseleave', () => {
+          openLink.style.background = 'rgba(11, 114, 133, 0.12)';
+        });
+        actions.appendChild(openLink);
+
+        const copyButton = document.createElement('button');
+        copyButton.type = 'button';
+        copyButton.textContent = 'Copy shareable link';
+        copyButton.style.fontSize = '13px';
+        copyButton.style.fontWeight = '600';
+        copyButton.style.color = '#1f2a44';
+        copyButton.style.background = '#e9eef5';
+        copyButton.style.border = '1px solid rgba(15, 23, 42, 0.08)';
+        copyButton.style.borderRadius = '999px';
+        copyButton.style.padding = '6px 12px';
+        copyButton.style.cursor = 'pointer';
+        copyButton.style.display = 'none';
+        actions.appendChild(copyButton);
+
+        panel.appendChild(actions);
+
+        const linkWrapper = document.createElement('div');
+        linkWrapper.style.display = 'none';
+        linkWrapper.style.marginBottom = '10px';
+        linkWrapper.style.width = '100%';
+
+        const linkInput = document.createElement('input');
+        linkInput.type = 'text';
+        linkInput.readOnly = true;
+        linkInput.style.width = '100%';
+        linkInput.style.fontSize = '12px';
+        linkInput.style.padding = '6px 8px';
+        linkInput.style.borderRadius = '6px';
+        linkInput.style.border = '1px solid rgba(15, 23, 42, 0.16)';
+        linkInput.style.background = '#f8fafc';
+        linkInput.style.color = '#1f2a44';
+        linkInput.style.boxSizing = 'border-box';
+        linkWrapper.appendChild(linkInput);
+
+        panel.appendChild(linkWrapper);
+
+        const status = document.createElement('div');
+        status.style.fontSize = '12px';
+        status.style.color = '#2f6d34';
+        status.style.minHeight = '18px';
+        status.style.marginBottom = '6px';
+        status.textContent = '';
+        panel.appendChild(status);
+
+        const body = document.createElement('div');
+        body.style.overflowY = 'auto';
+        body.style.paddingRight = '4px';
+        body.style.marginRight = '-4px';
+        body.style.flex = '1 1 auto';
+        body.style.fontFamily = 'Roboto, Arial, sans-serif';
+        body.style.color = '#102a43';
+        panel.appendChild(body);
+
+        container.appendChild(panel);
+
+        copyButton.addEventListener('click', () => {
+          if (!linkInput.value) {
+            return;
+          }
+          const text = linkInput.value;
+          const finalize = success => {
+            if (state.copyTimeout) {
+              clearTimeout(state.copyTimeout);
+            }
+            status.textContent = success
+              ? 'Link copied to clipboard'
+              : 'Unable to copy link automatically';
+            status.style.color = success ? '#2f6d34' : '#b42318';
+            if (success) {
+              state.copyTimeout = window.setTimeout(() => {
+                status.textContent = '';
+              }, 2500);
+            }
+          };
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(
+              () => finalize(true),
+              () => finalize(false)
+            );
+          } else {
+            try {
+              linkInput.focus();
+              linkInput.select();
+              const ok = document.execCommand('copy');
+              finalize(ok);
+            } catch (error) {
+              finalize(false);
+            }
+          }
+        });
+
+        state.panelElements = {
+          panel,
+          title,
+          openLink,
+          copyButton,
+          linkWrapper,
+          linkInput,
+          status,
+          body,
+        };
+        return state.panelElements;
+      };
+
+      const hidePanel = () => {
+        if (!state.panelElements) {
+          return;
+        }
+        state.panelElements.panel.style.display = 'none';
+      };
+
+      const showPanel = info => {
+        const elements = ensurePanel();
+        const {
+          panel,
+          title,
+          openLink,
+          copyButton,
+          linkWrapper,
+          linkInput,
+          status,
+          body,
+        } = elements;
+
+        const communityName =
+          info && info.object && info.object.community
+            ? String(info.object.community)
+            : 'Community details';
+        title.textContent = communityName;
+
+        let detailHref = '';
+        if (info && info.object && info.object.detail_url) {
+          const baseUrl =
+            document.referrer && document.referrer.startsWith('http')
+              ? document.referrer
+              : window.parent && window.parent.location && window.parent.location.href
+              ? window.parent.location.href
+              : window.location.href;
+          try {
+            detailHref = new URL(info.object.detail_url, baseUrl).toString();
+          } catch (error) {
+            console.error('Unable to resolve community detail URL', error);
+          }
+        }
+
+        if (detailHref) {
+          openLink.href = detailHref;
+          openLink.style.display = 'inline-flex';
+          copyButton.style.display = 'inline-flex';
+          linkWrapper.style.display = 'block';
+          linkInput.value = detailHref;
+        } else {
+          openLink.href = '#';
+          openLink.style.display = 'none';
+          copyButton.style.display = 'none';
+          linkWrapper.style.display = 'none';
+          linkInput.value = '';
+        }
+
+        status.textContent = '';
+
+        const tooltipHTML =
+          info && info.object && info.object.tooltip_html
+            ? String(info.object.tooltip_html)
+            : "<div style='font-size:12px;color:#5f6c7b;'>No additional details available for this community.</div>";
+        body.innerHTML = tooltipHTML;
+        body.scrollTop = 0;
+
+        panel.style.display = 'flex';
       };
 
       deckObject.setProps({
-        onClick: info => {
-          openCommunityPage(info);
+        onClick: (info, event) => {
+          if (info && info.object) {
+            showPanel(info);
+          } else {
+            hidePanel();
+          }
           if (existingOnClick) {
             try {
-              existingOnClick(info);
+              existingOnClick(info, event);
             } catch (error) {
               console.error('Error in existing onClick handler', error);
             }
@@ -761,6 +1022,15 @@ def main() -> None:
     )
 
     render_map(deck, height=640)
+
+    st.markdown(
+        "<div style='margin-top:8px;margin-bottom:18px;padding:10px 12px;border-radius:10px;"
+        "background:rgba(11,114,133,0.08);color:#0b3954;font-size:13px;'>"
+        "<strong>Tip:</strong> Click any community circle to pin a full details panel. "
+        "Use the <em>Open full community view</em> button or the shareable link to view "
+        "the same information in a separate browser tab.</div>",
+        unsafe_allow_html=True,
+    )
 
     st.subheader("Map Legend")
     legend_columns = st.columns(2)
