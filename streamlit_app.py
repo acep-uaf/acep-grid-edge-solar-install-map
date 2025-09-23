@@ -567,8 +567,8 @@ def create_community_records(df: pd.DataFrame) -> List[Dict[str, object]]:
 
 
 def clear_selected_community() -> None:
-    st.experimental_set_query_params()
-    st.experimental_rerun()
+    #st.query_params
+    st.rerun()
 
 
 def render_community_detail(community: str, data: pd.DataFrame) -> bool:
@@ -693,7 +693,7 @@ def main() -> None:
     data = load_data()
     community_records = create_community_records(data)
 
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params
     selected_values = query_params.get("community", [])
     selected_community = ""
     if selected_values:
