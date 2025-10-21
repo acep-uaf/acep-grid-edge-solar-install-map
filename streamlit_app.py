@@ -691,7 +691,7 @@ def inject_click_handler(html_string: str) -> str:
         actions.style.marginBottom = '8px';
 
         const openLink = document.createElement('a');
-        openLink.textContent = 'Open full community view \u2197';
+        openLink.textContent = 'Detailed Community Page \u2197';
         openLink.href = '#';
         openLink.target = '_blank';
         openLink.rel = 'noopener noreferrer';
@@ -955,10 +955,18 @@ def main() -> None:
     community_records = create_community_records(data)
 
     query_params = st.query_params
-    selected_values = query_params.get("community", [])
+    selected_values = query_params.get("community")
     selected_community = ""
-    if selected_values:
-        raw_value = selected_values[0]
+    
+    if isinstance(selected_values, (list, tuple)):
+        value_candidates = list(selected_values)
+    elif selected_values is None:
+        value_candidates = []
+    else:
+        value_candidates = [selected_values]
+
+    if value_candidates:
+        raw_value = value_candidates[0]
         if isinstance(raw_value, str):
             selected_community = raw_value.strip()
         elif raw_value is not None:
@@ -999,7 +1007,7 @@ def main() -> None:
         get_pixel_offset=[0, 18],
     )
 
-    view_state = pdk.ViewState(latitude=64.2008, longitude=-152.4044, zoom=3.6, min_zoom=2.5, max_zoom=10, pitch=30)
+    view_state = pdk.ViewState(latitude=64.2008, longitude=-152.4044, zoom=3.4, min_zoom=2.5, max_zoom=10, pitch=10)
 
     tooltip_style = {
         "html": "{tooltip_html}",
