@@ -566,10 +566,6 @@ def create_community_records(df: pd.DataFrame) -> List[Dict[str, object]]:
     return records
 
 
-def clear_selected_community() -> None:
-    #st.query_params
-    st.rerun()
-
 
 def render_community_detail(community: str, data: pd.DataFrame) -> bool:
     community_df = data[data["Community Name"] == community]
@@ -577,18 +573,11 @@ def render_community_detail(community: str, data: pd.DataFrame) -> bool:
         st.warning(f"No project details were found for {community}.")
         return False
 
-    heading_html = (
-        "<div style='font-size:20px;font-weight:700;color:#0b3954;margin:16px 0 8px;'>"
-        f"{html.escape(community)} – Community project details"
-        "</div>"
-    )
-    st.markdown(heading_html, unsafe_allow_html=True)
 
+    st.title(f"{community} - Detailed Information")
     detail_html = build_tooltip_html(community, community_df)
     st.markdown(detail_html, unsafe_allow_html=True)
-    st.caption("This view mirrors the on-map tooltip for easier reading and sharing.")
 
-    st.button("Back to map", on_click=clear_selected_community, key="back-to-map")
     return True
 
 
@@ -702,6 +691,7 @@ def inject_click_handler(html_string: str) -> str:
         openLink.style.textDecoration = 'none';
         openLink.style.padding = '6px 10px';
         openLink.style.borderRadius = '999px';
+        openLink.style.fontFamily = 'Roboto, Arial, sans-serif'
         openLink.style.background = 'rgba(11, 114, 133, 0.12)';
         openLink.addEventListener('mouseenter', () => {
           openLink.style.background = 'rgba(11, 114, 133, 0.18)';
@@ -723,7 +713,6 @@ def inject_click_handler(html_string: str) -> str:
         copyButton.style.padding = '6px 12px';
         copyButton.style.cursor = 'pointer';
         copyButton.style.display = 'none';
-        actions.appendChild(copyButton);
 
         panel.appendChild(actions);
 
@@ -745,7 +734,7 @@ def inject_click_handler(html_string: str) -> str:
         linkInput.style.boxSizing = 'border-box';
         linkWrapper.appendChild(linkInput);
 
-        panel.appendChild(linkWrapper);
+    
 
         const status = document.createElement('div');
         status.style.fontSize = '12px';
@@ -949,8 +938,6 @@ def load_data(path: str = DATA_PATH) -> pd.DataFrame:
 def main() -> None:
     st.set_page_config(page_title="Alaska Clean Energy Projects", page_icon="☀️", layout="wide")
 
-    st.title("Alaska Battery and Solar PV Installation Map")
-
     data = load_data()
     community_records = create_community_records(data)
 
@@ -976,11 +963,13 @@ def main() -> None:
     if selected_community:
         detail_rendered = render_community_detail(selected_community, data)
         if detail_rendered:
-            st.divider()
+            return
 
     if not community_records:
         st.warning("No community records with valid coordinates were found in the dataset.")
         return
+    
+    st.title("Alaska Battery and Solar PV Installation Map")
 
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
@@ -1035,7 +1024,7 @@ def main() -> None:
         "<div style='margin-top:8px;margin-bottom:18px;padding:10px 12px;border-radius:10px;"
         "background:rgba(11,114,133,0.08);color:#0b3954;font-size:13px;'>"
         "<strong>Tip:</strong> Click any community circle to pin a full details panel. "
-        "Use the <em>Open full community view</em> button or the shareable link to view "
+        "Use the <em>Detailed Community Page</em> button or the shareable link to view "
         "the same information in a separate browser tab.</div>",
         unsafe_allow_html=True,
     )
