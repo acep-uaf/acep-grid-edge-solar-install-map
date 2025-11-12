@@ -1,4 +1,4 @@
-"""Streamlit application for visualizing Alaska community energy projects."""
+"""Streamlit application for visualizing Alaska Solar PV and battery energy storage projects."""
 from __future__ import annotations
 
 import html
@@ -936,7 +936,7 @@ def load_data(path: str = DATA_PATH) -> pd.DataFrame:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Alaska Clean Energy Projects", page_icon="☀️", layout="wide")
+    st.set_page_config(page_title="Alaska Solar and Battery Projects", page_icon="☀️", layout="wide")
 
     data = load_data()
     community_records = create_community_records(data)
