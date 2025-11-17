@@ -969,6 +969,13 @@ def main() -> None:
         st.warning("No community records with valid coordinates were found in the dataset.")
         return
     
+    col1, col2, col3 = st.columns(spec=[0.12, 0.7, 0.25])
+
+    with col1:
+        st.image("images\\0425_Blue_UAF_Block_RGB.png")
+    with col3:
+        st.image("images\\ACEP Logo (with White Filler on Star and Cogs).png")
+
     st.title("Alaska Battery and Solar PV Installation Map")
 
     scatter_layer = pdk.Layer(
@@ -988,7 +995,7 @@ def main() -> None:
         "TextLayer",
         data=community_records,
         get_position="[longitude, latitude]",
-        get_text="label",
+        get_text="community",
         get_color="[35, 35, 35, 255]",
         get_size=16,
         get_alignment_baseline="top",
@@ -1043,10 +1050,20 @@ def main() -> None:
         )
 
     st.caption(
-        "Data source: ACEP Grid Edge Solar Installation dataset. Hover over communities to see projects, "
-        "systems, and associated parameters."
+        "This work was jointly funded by the Denali Commission (award #1659) as well as the U.S. Department of Energy Arctic Energy Office."
     )
-
+    st.caption("<p style='font-size: 12px; text-align: center;'>The University of Alaska is an equal opportunity and equal access employer, " \
+    "educational institution and provider. The University of Alaska does not discriminate on" \
+    " the basis of race, religion, color, national origin, citizenship, age, sex, physical or" \
+    " mental disability, status as a protected veteran, marital status, changes in marital status," \
+    " pregnancy, childbirth or related medical conditions, parenthood, sexual orientation, gender" \
+    " identity, political affiliation or belief, genetic information, or other legally protected status." \
+    " The University’s commitment to nondiscrimination applies to all applicants, faculty, staff, students," \
+    " student-employees, volunteers, affiliates and contractors in a manner consistent with all applicable laws," \
+    " regulations, ordinances, orders, and Board of Regents’ Policies, University Regulations,"
+    " and related internal processes and procedures. Contact information and complaint procedures" \
+    " are included on UA's statement of nondiscrimination available at http://www.alaska.edu/nondiscrimination.</p>",
+    unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
