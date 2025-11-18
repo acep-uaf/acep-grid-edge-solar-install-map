@@ -972,9 +972,9 @@ def main() -> None:
     col1, col2, col3 = st.columns(spec=[0.12, 0.7, 0.25])
 
     with col1:
-        st.image("images\\0425_Blue_UAF_Block_RGB.png")
+        st.image("images\\0824_Blue_UAF_Block_RGB.svg")
     with col3:
-        st.image("images\\ACEP Logo (with White Filler on Star and Cogs).png")
+        st.image("images\\acep_logo.svg")
 
     st.title("Alaska Battery and Solar PV Installation Map")
 
