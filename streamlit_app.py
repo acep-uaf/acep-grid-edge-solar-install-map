@@ -10,6 +10,7 @@ import pandas as pd
 import pydeck as pdk
 import streamlit as st
 import streamlit.components.v1 as components
+import pathlib
 
 DATA_PATH = "data/installation_data_csv.csv"
 
@@ -972,9 +973,9 @@ def main() -> None:
     col1, col2, col3 = st.columns(spec=[0.12, 0.7, 0.25])
 
     with col1:
-        st.image("images\\0824_Blue_UAF_Block_RGB.svg")
+        st.image(pathlib.Path("images\\0824_Blue_UAF_Block_RGB.svg"))
     with col3:
-        st.image("images\\acep_logo.svg")
+        st.image(pathlib.Path("images\\acep_logo.svg"))
 
     st.title("Alaska Battery and Solar PV Installation Map")
 
